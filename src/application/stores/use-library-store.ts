@@ -23,6 +23,12 @@ interface LibraryState {
   deletePlaylist: (id: string) => void;
   addTrackToPlaylist: (playlistId: string, trackId: string) => void;
   removeTrackFromPlaylist: (playlistId: string, trackId: string) => void;
+  moveTrackInPlaylist: (
+    playlistId: string,
+    fromIndex: number,
+    toIndex: number
+  ) => void;
+  reorderPlaylistTracks: (playlistId: string, trackIds: string[]) => void;
 }
 
 export const useLibraryStore = create<LibraryState>((set, get) => ({
@@ -96,6 +102,32 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
         pl.id === playlistId
           ? { ...pl, trackIds: pl.trackIds.filter((t) => t !== trackId) }
           : pl
+      ),
+    })),
+
+  moveTrackInPlaylist: (playlistId, fromIndex, toIndex) =>
+    set((state) => ({
+      playlists: state.playlists.map((pl) => {
+        if (pl.id !== playlistId) return pl;
+        if (
+          fromIndex < 0 ||
+          toIndex < 0 ||
+          fromIndex >= pl.trackIds.length ||
+          toIndex >= pl.trackIds.length
+        ) {
+          return pl;
+        }
+        const next = [...pl.trackIds];
+        const [moved] = next.splice(fromIndex, 1);
+        next.splice(toIndex, 0, moved);
+        return { ...pl, trackIds: next };
+      }),
+    })),
+
+  reorderPlaylistTracks: (playlistId, trackIds) =>
+    set((state) => ({
+      playlists: state.playlists.map((pl) =>
+        pl.id === playlistId ? { ...pl, trackIds } : pl
       ),
     })),
 }));

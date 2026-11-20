@@ -1,15 +1,15 @@
 "use client";
 
-import React from "react";
+import React, { useRef } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Home, Search, Heart, Library } from "lucide-react";
 
 /**
  * Mobile App Bottom Bar — MAX 4 menus
- * Active item expands into a crisp ocean-blue gradient capsule with white
- * icon + label; inactive items sit in high-contrast circular glass orbs.
+ * Supports BOTH tapping any menu item AND sliding your finger smoothly
+ * across the liquid glass capsule to scrub between menus!
  */
 const MOBILE_NAV = [
   { href: "/", label: "Home", icon: Home },
@@ -20,12 +20,42 @@ const MOBILE_NAV = [
 
 export function MobileBottomNav() {
   const pathname = usePathname();
+  const router = useRouter();
+  const navRef = useRef<HTMLElement | null>(null);
+  const lastScrubIndexRef = useRef<number | null>(null);
+
+  const scrubToClientX = (clientX: number) => {
+    const nav = navRef.current;
+    if (!nav) return;
+    const rect = nav.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(0.999, (clientX - rect.left) / rect.width));
+    const idx = Math.floor(ratio * MOBILE_NAV.length);
+    if (idx !== lastScrubIndexRef.current) {
+      lastScrubIndexRef.current = idx;
+      const target = MOBILE_NAV[idx];
+      if (target && target.href !== pathname) {
+        router.push(target.href);
+      }
+    }
+  };
 
   return (
     <div className="md:hidden fixed bottom-4 inset-x-4 z-40 flex justify-center pointer-events-none">
       <nav
+        ref={navRef}
         aria-label="Mobile Navigation"
-        className="pointer-events-auto liquid-glass-dock rounded-full p-2 flex items-center justify-between gap-2 w-full max-w-[390px]"
+        onTouchStart={() => {
+          lastScrubIndexRef.current = null;
+        }}
+        onTouchMove={(e) => {
+          if (e.touches.length === 1) {
+            scrubToClientX(e.touches[0].clientX);
+          }
+        }}
+        onTouchEnd={() => {
+          lastScrubIndexRef.current = null;
+        }}
+        className="pointer-events-auto touch-pan-y liquid-glass-dock rounded-full p-2 flex items-center justify-between gap-2 w-full max-w-[390px] select-none"
       >
         {MOBILE_NAV.map((item) => {
           const isActive =

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AppShell } from "@/src/presentation/components/layout/AppShell";
+import { appConfig } from "@/src/infrastructure/config/app-config";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -24,6 +25,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
+  metadataBase: new URL(appConfig.appUrl),
   title: "Synseafy — Personal Liquid Music Player",
   description:
     "Personal liquid glass music player in the Wynnsea ecosystem with YouTube Music discovery.",
@@ -35,10 +37,10 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
+      { url: "/brand/logo-v3.png", type: "image/png" },
       { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
-      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
     ],
-    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
+    apple: [{ url: "/brand/logo-v3.png" }],
   },
 };
 

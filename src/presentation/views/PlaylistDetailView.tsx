@@ -2,12 +2,22 @@
 
 import React, { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Play, Trash2, Plus, ArrowLeft, Check } from "lucide-react";
+import { Reorder } from "framer-motion";
+import {
+  Play,
+  Trash2,
+  Plus,
+  ArrowLeft,
+  Check,
+  Pencil,
+  GripVertical,
+} from "lucide-react";
 import { MOCK_TRACKS } from "@/src/infrastructure/data/mock-tracks";
 import { useLibraryStore } from "@/src/application/stores/use-library-store";
 import { usePlayerStore } from "@/src/application/stores/use-player-store";
 import { TopHeader } from "@/src/presentation/components/layout/TopHeader";
 import { TrackPillRow } from "@/src/presentation/components/music/TrackPillRow";
+import { EditPlaylistModal } from "@/src/presentation/components/music/EditPlaylistModal";
 
 interface PlaylistDetailViewProps {
   playlistId: string;
@@ -20,10 +30,12 @@ export function PlaylistDetailView({ playlistId }: PlaylistDetailViewProps) {
     deletePlaylist,
     addTrackToPlaylist,
     removeTrackFromPlaylist,
+    reorderPlaylistTracks,
     recordPlayed,
   } = useLibraryStore();
   const playTrack = usePlayerStore((s) => s.playTrack);
   const [showPicker, setShowPicker] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
 
   const playlist = playlists.find((p) => p.id === playlistId);
 
@@ -110,6 +122,13 @@ export function PlaylistDetailView({ playlistId }: PlaylistDetailViewProps) {
               Add Songs
             </button>
             <button
+              onClick={() => setIsEditOpen(true)}
+              title="Edit Playlist"
+              className="w-10 h-10 rounded-full liquid-pill flex items-center justify-center text-[var(--text-primary)] hover:text-[var(--accent-cyan)] cursor-pointer"
+            >
+              <Pencil className="w-4 h-4" />
+            </button>
+            <button
               onClick={() => {
                 deletePlaylist(playlist.id);
                 router.push("/library");
@@ -160,27 +179,51 @@ export function PlaylistDetailView({ playlistId }: PlaylistDetailViewProps) {
           </div>
         )}
 
-        {/* Playlist Tracks */}
+        {/* Playlist Tracks (Drag & Drop Reorder) */}
         {tracks.length > 0 ? (
-          <div className="space-y-3">
-            {tracks.map((track) => (
-              <TrackPillRow
-                key={track.id}
-                track={track}
-                queueContext={tracks}
-                extraAction={
-                  <button
-                    onClick={() =>
-                      removeTrackFromPlaylist(playlist.id, track.id)
-                    }
-                    title="Remove from playlist"
-                    className="w-8 h-8 rounded-full liquid-pill flex items-center justify-center text-[var(--text-muted)] hover:text-rose-400 cursor-pointer"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                }
-              />
-            ))}
+          <div className="space-y-2">
+            <p className="text-[11px] text-[var(--text-muted)] px-1">
+              Drag tracks to reorder playlist
+            </p>
+            <Reorder.Group
+              axis="y"
+              values={tracks}
+              onReorder={(newOrder) =>
+                reorderPlaylistTracks(
+                  playlist.id,
+                  newOrder.map((t) => t.id)
+                )
+              }
+              className="space-y-3 px-2 -mx-2 py-2"
+            >
+              {tracks.map((track) => (
+                <Reorder.Item
+                  key={track.id}
+                  value={track}
+                  whileDrag={{ scale: 1.015, zIndex: 20 }}
+                  className="flex items-center gap-2 cursor-grab active:cursor-grabbing"
+                >
+                  <GripVertical className="w-4 h-4 text-[var(--text-muted)] shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <TrackPillRow
+                      track={track}
+                      queueContext={tracks}
+                      extraAction={
+                        <button
+                          onClick={() =>
+                            removeTrackFromPlaylist(playlist.id, track.id)
+                          }
+                          title="Remove from playlist"
+                          className="w-8 h-8 rounded-full liquid-pill flex items-center justify-center text-[var(--text-muted)] hover:text-rose-400 cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      }
+                    />
+                  </div>
+                </Reorder.Item>
+              ))}
+            </Reorder.Group>
           </div>
         ) : (
           <div className="liquid-glass rounded-[32px] p-10 text-center space-y-2">
@@ -193,6 +236,12 @@ export function PlaylistDetailView({ playlistId }: PlaylistDetailViewProps) {
           </div>
         )}
       </div>
+
+      <EditPlaylistModal
+        playlist={playlist}
+        isOpen={isEditOpen}
+        onClose={() => setIsEditOpen(false)}
+      />
     </div>
   );
 }

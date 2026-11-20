@@ -2,6 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import {
@@ -10,14 +11,10 @@ import {
   Heart,
   Library,
   Plus,
-  Sun,
-  Moon,
-  Waves,
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-react";
 import { useLibraryStore } from "@/src/application/stores/use-library-store";
-import { useThemeStore } from "@/src/application/stores/use-theme-store";
 import { useUiStore } from "@/src/application/stores/use-ui-store";
 
 const NAV_ITEMS = [
@@ -30,7 +27,6 @@ const NAV_ITEMS = [
 export function DesktopLiquidSidebar() {
   const pathname = usePathname();
   const playlists = useLibraryStore((s) => s.playlists);
-  const { theme, toggleTheme } = useThemeStore();
   const { isSidebarExpanded, toggleSidebar, setCreatePlaylistOpen } =
     useUiStore();
 
@@ -48,8 +44,15 @@ export function DesktopLiquidSidebar() {
           }`}
         >
           <Link href="/" className="flex items-center gap-3 group min-w-0">
-            <div className="w-10 h-10 rounded-2xl ocean-gradient-btn flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-105">
-              <Waves className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 rounded-2xl liquid-pill p-1.5 flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-105">
+              <Image
+                src="/brand/logo-v3.png"
+                alt="Synseafy Logo"
+                width={32}
+                height={32}
+                className="w-full h-full object-contain drop-shadow-[0_2px_8px_rgba(56,189,248,0.45)]"
+                priority
+              />
             </div>
             {isSidebarExpanded && (
               <div className="min-w-0">
@@ -74,12 +77,8 @@ export function DesktopLiquidSidebar() {
           )}
         </div>
 
-        <div
-          className={`flex items-center gap-2 ${
-            isSidebarExpanded ? "justify-between" : "flex-col"
-          }`}
-        >
-          {!isSidebarExpanded && (
+        {!isSidebarExpanded && (
+          <div className="flex justify-center">
             <button
               onClick={toggleSidebar}
               title="Expand Dock"
@@ -87,32 +86,8 @@ export function DesktopLiquidSidebar() {
             >
               <PanelLeftOpen className="w-4 h-4" />
             </button>
-          )}
-
-          <button
-            onClick={toggleTheme}
-            className={`liquid-pill rounded-full flex items-center justify-center gap-2 text-xs font-medium text-[var(--text-primary)] hover:bg-[var(--glass-bg-hover)] transition-all cursor-pointer ${
-              isSidebarExpanded ? "w-full py-2 px-3" : "w-10 h-10"
-            }`}
-            title={
-              theme === "dark"
-                ? "Switch to Light Sea Glass"
-                : "Switch to Deep Ocean Dark"
-            }
-          >
-            {theme === "dark" ? (
-              <>
-                <Sun className="w-4 h-4 text-sky-300 shrink-0" />
-                {isSidebarExpanded && <span>Light Sea Glass</span>}
-              </>
-            ) : (
-              <>
-                <Moon className="w-4 h-4 text-sky-600 shrink-0" />
-                {isSidebarExpanded && <span>Deep Ocean Dark</span>}
-              </>
-            )}
-          </button>
-        </div>
+          </div>
+        )}
       </div>
 
       {/* POD 2: Sculpted Floating Navigation Capsule */}
@@ -178,7 +153,7 @@ export function DesktopLiquidSidebar() {
           </button>
         </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar flex flex-col gap-1.5">
+        <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar flex flex-col gap-1.5 px-1 py-1 -mx-1">
           {playlists.map((pl) => {
             const active = pathname === `/playlist/${pl.id}`;
             return (
@@ -186,10 +161,10 @@ export function DesktopLiquidSidebar() {
                 key={pl.id}
                 href={`/playlist/${pl.id}`}
                 title={pl.name}
-                className={`group flex items-center gap-3 rounded-2xl p-1.5 transition-all shrink-0 ${
+                className={`group flex items-center gap-3 rounded-2xl p-1.5 border transition-all shrink-0 ${
                   active
-                    ? "bg-[var(--glass-bg-hover)] ring-1 ring-[var(--accent-cyan)]/45"
-                    : "hover:bg-[var(--glass-bg-hover)]"
+                    ? "bg-[var(--glass-bg-hover)] border-[var(--accent-cyan)]/50"
+                    : "border-transparent hover:bg-[var(--glass-bg-hover)]"
                 } ${!isSidebarExpanded ? "justify-center" : ""}`}
               >
                 <div

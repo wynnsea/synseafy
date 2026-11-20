@@ -1,10 +1,12 @@
 "use client";
 
 import React from "react";
-import { Sun, Moon, Sparkles, ListMusic, Mic2, Download } from "lucide-react";
+import Link from "next/link";
+import Image from "next/image";
+import { Sun, Moon, LogIn, LogOut } from "lucide-react";
 import { useThemeStore } from "@/src/application/stores/use-theme-store";
-import { useUiStore } from "@/src/application/stores/use-ui-store";
-import { usePwaStore } from "@/src/application/stores/use-pwa-store";
+import { useAuthStore } from "@/src/application/stores/use-auth-store";
+import { APP_ROUTES } from "@/src/infrastructure/config/app-config";
 
 interface TopHeaderProps {
   title?: string;
@@ -16,77 +18,47 @@ export function TopHeader({
   subtitle = "Deep ocean soundscape ready",
 }: TopHeaderProps) {
   const { theme, toggleTheme } = useThemeStore();
-  const { activeDrawer, toggleDrawer, setNowPlayingOpen } = useUiStore();
-  const { deferredPrompt, isInstalled, promptInstall } = usePwaStore();
+  const { user, signOut } = useAuthStore();
+
+  const resolvedTitle =
+    user && title === "Hi, Wynnsea" ? `Hi, ${user.name}` : title;
 
   return (
-    <header className="sticky top-0 z-20 pt-4 pb-3 px-4 md:px-7">
+    <header className="sticky top-0 z-30 pt-4 pb-5 px-4 md:px-7 bg-gradient-to-b from-[var(--bg-canvas)] via-[var(--bg-canvas)]/92 to-transparent">
       <div className="liquid-glass-dock rounded-full px-3.5 py-2.5 flex items-center justify-between gap-3">
-        {/* Left: Avatar + Personal Greeting (matches reference image) */}
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="w-10 h-10 rounded-full ocean-gradient-soft p-[2px] shrink-0 shadow-md">
-            <div className="w-full h-full rounded-full bg-[var(--bg-elevated)] flex items-center justify-center text-xs font-bold text-[var(--accent-cyan)]">
-              WS
-            </div>
+        {/* Left: Avatar + Personal Greeting */}
+        <Link
+          href={user ? APP_ROUTES.home : APP_ROUTES.login}
+          className="flex items-center gap-3 min-w-0 group"
+          title={user ? `${user.name} (${user.email})` : "Sign in to Synseafy"}
+        >
+          <div className="w-10 h-10 rounded-full liquid-pill p-1.5 shrink-0 shadow-md group-hover:scale-105 transition-transform flex items-center justify-center">
+            {user ? (
+              <span className="text-xs font-bold text-[var(--accent-cyan)]">
+                {user.initials}
+              </span>
+            ) : (
+              <Image
+                src="/brand/logo-v3.png"
+                alt="Synseafy"
+                width={28}
+                height={28}
+                className="w-full h-full object-contain"
+              />
+            )}
           </div>
           <div className="min-w-0">
             <h1 className="text-[15px] md:text-base font-semibold tracking-tight text-[var(--text-primary)] truncate">
-              {title}
+              {resolvedTitle}
             </h1>
             <p className="text-[11px] text-[var(--text-muted)] truncate hidden sm:block">
-              {subtitle}
+              {user ? user.email : subtitle}
             </p>
           </div>
-        </div>
+        </Link>
 
-        {/* Right: Quick Glass Action Orbs */}
+        {/* Right: Single-Purpose Header Actions (Theme + Auth only) */}
         <div className="flex items-center gap-2 shrink-0">
-          {/* One-click PWA Install button when browser supports install */}
-          {deferredPrompt && !isInstalled && (
-            <button
-              onClick={promptInstall}
-              title="Install Synseafy App"
-              className="h-10 px-3.5 rounded-full ocean-gradient-btn flex items-center gap-1.5 text-xs font-semibold hover:scale-105 transition-transform cursor-pointer"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Install App</span>
-            </button>
-          )}
-          {/* Desktop Lyrics / Queue quick triggers */}
-          <button
-            onClick={() => toggleDrawer("lyrics")}
-            title="Lyrics Panel"
-            className={`hidden md:flex w-10 h-10 rounded-full items-center justify-center transition-all cursor-pointer ${
-              activeDrawer === "lyrics"
-                ? "ocean-gradient-btn"
-                : "liquid-pill text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-            }`}
-          >
-            <Mic2 className="w-4 h-4" />
-          </button>
-
-          <button
-            onClick={() => toggleDrawer("queue")}
-            title="Up Next Queue"
-            className={`hidden md:flex w-10 h-10 rounded-full items-center justify-center transition-all cursor-pointer ${
-              activeDrawer === "queue"
-                ? "ocean-gradient-btn"
-                : "liquid-pill text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-            }`}
-          >
-            <ListMusic className="w-4 h-4" />
-          </button>
-
-          {/* Immersive Now Playing trigger */}
-          <button
-            onClick={() => setNowPlayingOpen(true)}
-            title="Immersive Player"
-            className="w-10 h-10 rounded-full liquid-pill flex items-center justify-center text-[var(--accent-cyan)] hover:scale-105 transition-transform cursor-pointer"
-          >
-            <Sparkles className="w-4 h-4" />
-          </button>
-
-          {/* Theme Toggle (always accessible on mobile & desktop) */}
           <button
             onClick={toggleTheme}
             aria-label="Toggle Dark or Light Theme"
@@ -98,6 +70,25 @@ export function TopHeader({
               <Moon className="w-[18px] h-[18px] text-sky-600" />
             )}
           </button>
+
+          {user ? (
+            <button
+              onClick={signOut}
+              title="Sign Out"
+              className="w-10 h-10 rounded-full liquid-pill flex items-center justify-center text-[var(--text-secondary)] hover:text-rose-400 transition-colors cursor-pointer"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          ) : (
+            <Link
+              href={APP_ROUTES.login}
+              title="Sign In"
+              className="h-10 px-3.5 rounded-full liquid-pill flex items-center gap-1.5 text-xs font-semibold text-[var(--text-primary)] hover:bg-[var(--glass-bg-hover)] transition-colors"
+            >
+              <LogIn className="w-3.5 h-3.5 text-[var(--accent-cyan)]" />
+              <span className="hidden sm:inline">Sign In</span>
+            </Link>
+          )}
         </div>
       </div>
     </header>

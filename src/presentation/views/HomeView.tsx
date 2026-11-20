@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from "react";
 import Link from "next/link";
-import { Flame, Clock, Sparkles, Play } from "lucide-react";
+import { Flame, Clock } from "lucide-react";
 import { GENRES, MOCK_TRACKS } from "@/src/infrastructure/data/mock-tracks";
 import { useLibraryStore } from "@/src/application/stores/use-library-store";
 import { usePlayerStore } from "@/src/application/stores/use-player-store";
@@ -11,6 +11,7 @@ import { GenreChips } from "@/src/presentation/components/music/GenreChips";
 import { PopularCarouselCard } from "@/src/presentation/components/music/PopularCarouselCard";
 import { TrackPillRow } from "@/src/presentation/components/music/TrackPillRow";
 import { TrackArtwork } from "@/src/presentation/components/music/TrackArtwork";
+import { QuickPickGrid } from "@/src/presentation/components/music/QuickPickGrid";
 
 export function HomeView() {
   const [selectedGenre, setSelectedGenre] = useState("All");
@@ -56,64 +57,8 @@ export function HomeView() {
           />
         </section>
 
-        {/* Desktop Featured Ocean Banner (subtle on mobile, rich on desktop) */}
-        <section className="hidden md:flex liquid-glass-strong rounded-[32px] p-6 items-center justify-between gap-6 relative overflow-hidden">
-          <div
-            className="absolute -right-12 -top-12 w-64 h-64 rounded-full blur-3xl opacity-45 pointer-events-none"
-            style={{
-              background: "linear-gradient(135deg, #38bdf8, #0284c7)",
-            }}
-          />
-          <div className="space-y-2.5 max-w-xl relative z-10">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full liquid-pill text-[11px] font-semibold text-[var(--accent-cyan)]">
-              <Sparkles className="w-3.5 h-3.5" />
-              Wynnsea Liquid Mix
-            </span>
-            <h2 className="text-2xl lg:text-3xl font-bold tracking-tight text-[var(--text-primary)]">
-              Listen and Enjoy Your Deep Ocean Sound
-            </h2>
-            <p className="text-sm text-[var(--text-secondary)]">
-              Immerse yourself in a glassmorphic personal player crafted for
-              calm focus, late-night sessions, and seamless YouTube Music
-              discovery.
-            </p>
-            <div className="pt-1 flex items-center gap-3">
-              <button
-                onClick={() => {
-                  const first = popularTracks[0] ?? MOCK_TRACKS[0];
-                  playTrack(first, MOCK_TRACKS);
-                  recordPlayed(first.id);
-                }}
-                className="px-5 py-2.5 rounded-full ocean-gradient-btn text-xs font-semibold flex items-center gap-2 hover:scale-[1.03] transition-transform cursor-pointer"
-              >
-                <Play className="w-4 h-4 fill-white" />
-                Play Ocean Mix
-              </button>
-              <Link
-                href="/search"
-                className="px-5 py-2.5 rounded-full liquid-pill text-xs font-semibold text-[var(--text-primary)] hover:bg-[var(--glass-bg-hover)] transition-colors"
-              >
-                Explore Catalog
-              </Link>
-            </div>
-          </div>
-
-          <div className="relative z-10 flex items-center -space-x-5 pr-2">
-            {MOCK_TRACKS.slice(0, 3).map((t, idx) => (
-              <div
-                key={t.id}
-                className="p-1.5 rounded-full liquid-pill shadow-xl"
-                style={{ zIndex: 3 - idx }}
-              >
-                <TrackArtwork
-                  track={t}
-                  className="w-20 h-20 lg:w-24 lg:h-24"
-                  rounded="full"
-                />
-              </div>
-            ))}
-          </div>
-        </section>
+        {/* Spotify-style 2x3 Quick-Pick Grid */}
+        <QuickPickGrid />
 
         {/* Popular Horizontal Carousel (matches reference image) */}
         <section className="space-y-3.5">
@@ -129,7 +74,7 @@ export function HomeView() {
             </Link>
           </div>
 
-          <div className="flex items-stretch gap-4 overflow-x-auto no-scrollbar pb-2 -mx-4 px-4 md:mx-0 md:px-0">
+          <div className="flex items-stretch gap-4 overflow-x-auto no-scrollbar py-3 -my-2 -mx-4 px-4 md:-mx-2 md:px-2">
             {popularTracks.map((track) => (
               <PopularCarouselCard
                 key={track.id}

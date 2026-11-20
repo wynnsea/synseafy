@@ -17,11 +17,15 @@ export function GenreChips({ genres, selected, onSelect }: GenreChipsProps) {
           <button
             key={genre}
             onClick={() => onSelect(genre)}
-            className={`px-5 py-2.5 rounded-full text-xs sm:text-sm font-medium whitespace-nowrap transition-all duration-300 cursor-pointer shrink-0 ${
-              active
-                ? "ocean-gradient-btn font-semibold scale-[1.02]"
-                : "liquid-pill text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--glass-bg-hover)]"
-            }`}
+            style={{
+              boxShadow: active
+                ? "inset 0 1px 0 rgba(255, 255, 255, 0.65)"
+                : "inset 0 1px 0 rgba(255, 255, 255, 0.25)",
+            }}
+            className={`px-5 py-2.5 rounded-full text-xs sm:text-sm font-medium whitespace-nowrap transition-all duration-300 cursor-pointer shrink-0 ${active
+              ? "ocean-gradient-btn font-semibold"
+              : "liquid-pill text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--glass-bg-hover)]"
+              }`}
           >
             {genre}
           </button>

@@ -28,6 +28,7 @@ interface PlayerState {
   addToQueue: (track: Track) => void;
   removeFromQueue: (trackId: string) => void;
   moveQueueItem: (fromIndex: number, toIndex: number) => void;
+  setQueue: (tracks: Track[]) => void;
 }
 
 export const usePlayerStore = create<PlayerState>((set, get) => ({
@@ -158,4 +159,6 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       next.splice(toIndex, 0, moved);
       return { queue: next };
     }),
+
+  setQueue: (tracks) => set({ queue: tracks }),
 }));

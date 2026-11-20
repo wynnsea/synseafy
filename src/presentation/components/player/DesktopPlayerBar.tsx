@@ -51,7 +51,7 @@ export function DesktopPlayerBar() {
     currentTrack.duration > 0 ? currentTime / currentTrack.duration : 0;
 
   return (
-    <div className="hidden md:block absolute bottom-0 inset-x-0 px-4 lg:px-7 pb-4 pt-6 z-40 pointer-events-none bg-gradient-to-t from-[var(--bg-canvas)]/75 via-[var(--bg-canvas)]/25 to-transparent">
+    <div className="hidden md:block absolute bottom-0 inset-x-0 px-4 lg:px-7 pb-4 pt-8 z-40 pointer-events-none bg-gradient-to-t from-[var(--bg-canvas)] via-[var(--bg-canvas)]/92 to-transparent">
       <div className="pointer-events-auto max-w-[1380px] mx-auto liquid-glass-dock rounded-full px-6 py-3 flex items-center justify-between gap-5">
         {/* Left: Track Info */}
         <div className="flex items-center gap-3 w-[240px] lg:w-[270px] min-w-0">

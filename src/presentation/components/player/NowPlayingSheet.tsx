@@ -4,7 +4,6 @@ import React, { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowLeft,
-  MoreVertical,
   Play,
   Pause,
   SkipBack,
@@ -110,19 +109,13 @@ export function NowPlayingSheet() {
               </div>
 
               <button
-                onClick={() =>
-                  setView((v) =>
-                    v === "player"
-                      ? "lyrics"
-                      : v === "lyrics"
-                        ? "queue"
-                        : "player"
-                  )
-                }
-                aria-label="Switch player view"
-                className="w-11 h-11 rounded-full liquid-pill flex items-center justify-center text-[var(--text-primary)] hover:scale-105 transition-transform cursor-pointer"
+                onClick={() => toggleLike(currentTrack.id)}
+                aria-label={liked ? "Unlike song" : "Like song"}
+                className={`w-11 h-11 rounded-full liquid-pill flex items-center justify-center hover:scale-105 transition-transform cursor-pointer ${
+                  liked ? "text-sky-400" : "text-[var(--text-primary)]"
+                }`}
               >
-                <MoreVertical className="w-5 h-5" />
+                <Heart className={`w-5 h-5 ${liked ? "fill-current" : ""}`} />
               </button>
             </div>
 
@@ -155,24 +148,11 @@ export function NowPlayingSheet() {
                     </div>
                   </div>
 
-                  {/* Title, Artist & Like */}
+                  {/* Title & Artist */}
                   <div className="mt-6 text-center px-4 flex flex-col items-center gap-1">
-                    <div className="flex items-center gap-2.5">
-                      <h2 className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">
-                        {currentTrack.title}
-                      </h2>
-                      <button
-                        onClick={() => toggleLike(currentTrack.id)}
-                        className={`p-1.5 rounded-full transition-transform active:scale-90 cursor-pointer ${
-                          liked ? "text-sky-400" : "text-[var(--text-muted)]"
-                        }`}
-                        aria-label="Like song"
-                      >
-                        <Heart
-                          className={`w-5 h-5 ${liked ? "fill-current" : ""}`}
-                        />
-                      </button>
-                    </div>
+                    <h2 className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">
+                      {currentTrack.title}
+                    </h2>
                     <p className="text-sm text-[var(--text-secondary)]">
                       {currentTrack.artist}
                     </p>
