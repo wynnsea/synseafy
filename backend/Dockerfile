@@ -12,7 +12,8 @@ RUN pip install -r requirements.txt
 COPY app ./app
 
 # Run as a non-root user
-RUN useradd --create-home appuser
+# UID 1000 is what Hugging Face Spaces expects
+RUN useradd --create-home --uid 1000 appuser
 USER appuser
 
 # Most hosts (Render, Railway, Fly, Cloud Run) inject $PORT; default 8000 locally

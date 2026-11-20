@@ -41,6 +41,19 @@ Railway, Fly.io, Cloud Run) set automatically.
 
 Responses use camelCase. Upstream failures return `502`, bad ids `400`.
 
+## Deploy to Vercel (free)
+
+Vercel runs this FastAPI app as a Python function with zero config: it finds
+the `app` object in `app/main.py` and installs `requirements.txt` (Python 3.12).
+
+1. Vercel → **Add New → Project** → import the same GitHub repo again.
+2. **Root Directory**: `backend`. Framework preset: **FastAPI** (or Other).
+3. Environment variables: `ALLOWED_ORIGINS`, `YTM_LOCATION`, `YTM_LANGUAGE` (below).
+4. Deploy, then add the domain `api.music.wynnsea.my.id` in the project's Domains.
+
+The in-memory cache lives per function instance, so it's warm while the
+instance is reused and refills after a cold start.
+
 ## Configuration
 
 Copy `.env.example` to `.env` (or set the variables in your host):

@@ -10,12 +10,17 @@ export const APP_ROUTES = {
   login: "/login",
   register: "/register",
   authCallback: "/auth/callback",
+  privacy: "/privacy",
+  terms: "/terms",
 } as const;
 
+/** Pages shown without the player chrome (sidebar, tab bar, player). */
 export const AUTH_ROUTE_PATHS: readonly string[] = [
   APP_ROUTES.login,
   APP_ROUTES.register,
   APP_ROUTES.authCallback,
+  APP_ROUTES.privacy,
+  APP_ROUTES.terms,
 ];
 
 export const appConfig = {

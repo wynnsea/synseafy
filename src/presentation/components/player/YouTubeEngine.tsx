@@ -8,8 +8,11 @@ import {
   YT_STATE,
   YTPlayer,
 } from "@/src/infrastructure/youtube/iframe-api";
+import { createSilentAudio } from "@/src/infrastructure/audio/silent-audio";
 
 const MAX_CONSECUTIVE_ERRORS = 3;
+/** How often we re-start playback after YouTube pauses itself in the background */
+const MAX_BACKGROUND_RESUMES = 5;
 
 /**
  * The single YouTube IFrame player behind all playback. It mirrors the player
@@ -19,12 +22,18 @@ const MAX_CONSECUTIVE_ERRORS = 3;
  * NOTE: the player is kept out of sight (1×1 px) at the owner's request.
  * YouTube's API terms require embedded players to be visible (≥ 200×200 px),
  * so this carries a risk of the embed being blocked.
+ *
+ * Background playback (best effort): a silent <audio> plays alongside the
+ * music, and when YouTube pauses itself because the page went to the
+ * background, playback is restarted. Browsers (iOS especially) may still stop it.
  */
 export function YouTubeEngine() {
   const mountRef = useRef<HTMLDivElement | null>(null);
   const playerRef = useRef<YTPlayer | null>(null);
   const [ready, setReady] = useState(false);
   const errorCount = useRef(0);
+  const keepAliveRef = useRef<HTMLAudioElement | null>(null);
+  const backgroundResumes = useRef(0);
 
   // 1) Create the player once the IFrame API is loaded
   useEffect(() => {
@@ -58,6 +67,16 @@ export function YouTubeEngine() {
                 errorCount.current = 0;
                 if (!store.isPlaying) store.setPlaying(true);
               } else if (e.data === YT_STATE.PAUSED && store.isPlaying) {
+                // Paused by YouTube itself because the app went to the
+                // background (the user didn't pause): try to keep playing
+                if (
+                  document.hidden &&
+                  backgroundResumes.current < MAX_BACKGROUND_RESUMES
+                ) {
+                  backgroundResumes.current += 1;
+                  setTimeout(() => playerRef.current?.playVideo(), 300);
+                  return;
+                }
                 store.setPlaying(false);
               }
             },
@@ -98,6 +117,13 @@ export function YouTubeEngine() {
     const player = playerRef.current;
     if (!player) return;
 
+    const keepAlive = (playing: boolean) => {
+      const audio = keepAliveRef.current;
+      if (!audio) return;
+      if (playing) void audio.play().catch(() => {});
+      else audio.pause();
+    };
+
     const apply = (state: ReturnType<typeof usePlayerStore.getState>) => {
       player.setVolume(Math.round(state.volume * 100));
       if (state.isMuted) player.mute();
@@ -116,6 +142,10 @@ export function YouTubeEngine() {
 
     return usePlayerStore.subscribe((state, prev) => {
       if (!state.hasActiveTrack) return;
+      if (state.isPlaying !== prev.isPlaying || !prev.hasActiveTrack) {
+        // Same click/gesture as the play action, so the browser allows it
+        keepAlive(state.isPlaying);
+      }
 
       if (
         state.currentTrack.videoId !== prev.currentTrack.videoId ||
@@ -136,6 +166,32 @@ export function YouTubeEngine() {
       if (state.volume !== prev.volume || state.isMuted !== prev.isMuted)
         apply(state);
     });
+  }, [ready]);
+
+  // Silent keep-alive audio (created once, stopped on unmount)
+  useEffect(() => {
+    keepAliveRef.current = createSilentAudio();
+    return () => {
+      keepAliveRef.current?.pause();
+      keepAliveRef.current = null;
+    };
+  }, []);
+
+  // Back in the foreground: reset the retry budget and resume if YouTube stopped
+  useEffect(() => {
+    if (!ready) return;
+    const onVisibility = () => {
+      if (document.hidden) return;
+      backgroundResumes.current = 0;
+      const player = playerRef.current;
+      const store = usePlayerStore.getState();
+      if (!player || !store.hasActiveTrack || !store.isPlaying) return;
+      const state = player.getPlayerState();
+      if (state !== YT_STATE.PLAYING && state !== YT_STATE.BUFFERING)
+        player.playVideo();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
   }, [ready]);
 
   // 3) YouTube → store, once a second

@@ -6,6 +6,7 @@ import { useThemeStore } from "@/src/application/stores/use-theme-store";
 import { usePlayerStore } from "@/src/application/stores/use-player-store";
 import { useAuthStore } from "@/src/application/stores/use-auth-store";
 import { useUserDataSync } from "@/src/application/stores/use-user-data-sync";
+import { useMediaSession } from "@/src/application/hooks/use-media-session";
 import { useCatalogStore } from "@/src/application/stores/use-catalog-store";
 import { clearPendingListen } from "@/src/application/stores/pending-listen";
 import { isSupabaseConfigured } from "@/src/infrastructure/supabase/client";
@@ -90,6 +91,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   // Load / clear the signed-in user's library, history, searches and settings
   useUserDataSync();
+
+  // Lock-screen / notification / headset controls
+  useMediaSession();
 
   // Home feed (trending, quick picks, artists) used across pages
   const loadHome = useCatalogStore((s) => s.loadHome);
