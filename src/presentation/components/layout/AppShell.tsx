@@ -32,7 +32,7 @@ function ShellChrome({ children }: { children: React.ReactNode }) {
 
       {/* Main Content Column: scrolls independently on desktop; hosts its own aligned player bar */}
       <div className="relative flex-1 min-w-0 flex flex-col md:h-screen">
-        <main className="flex-1 min-w-0 md:overflow-y-auto pb-[172px] md:pb-[124px]">
+        <main className="flex-1 min-w-0 md:overflow-y-auto md:pb-[124px]">
           <MobileSwipeNavigator>{children}</MobileSwipeNavigator>
         </main>
 

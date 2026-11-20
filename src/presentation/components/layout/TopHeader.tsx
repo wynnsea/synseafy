@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Sun, Moon, LogIn, LogOut } from "lucide-react";
+import { Sun, Moon, LogIn, Heart } from "lucide-react";
 import { useThemeStore } from "@/src/application/stores/use-theme-store";
 import { useAuthStore } from "@/src/application/stores/use-auth-store";
 import { APP_ROUTES } from "@/src/infrastructure/config/app-config";
@@ -18,7 +18,7 @@ export function TopHeader({
   subtitle = "Deep ocean soundscape ready",
 }: TopHeaderProps) {
   const { theme, toggleTheme } = useThemeStore();
-  const { user, signOut } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
 
   const resolvedTitle =
     user && title === "Hi, Wynnsea" ? `Hi, ${user.name}` : title;
@@ -28,7 +28,7 @@ export function TopHeader({
       <div className="liquid-glass-dock rounded-full px-3.5 py-2.5 flex items-center justify-between gap-3">
         {/* Left: Avatar + Personal Greeting */}
         <Link
-          href={user ? APP_ROUTES.home : APP_ROUTES.login}
+          href={user ? APP_ROUTES.profile : APP_ROUTES.login}
           className="flex items-center gap-3 min-w-0 group"
           title={user ? `${user.name} (${user.email})` : "Sign in to Synseafy"}
         >
@@ -57,7 +57,7 @@ export function TopHeader({
           </div>
         </Link>
 
-        {/* Right: Single-Purpose Header Actions (Theme + Auth only) */}
+        {/* Right: Theme Toggle + Sign In (Guest) / Liked Songs (Logged In) */}
         <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={toggleTheme}
@@ -72,13 +72,14 @@ export function TopHeader({
           </button>
 
           {user ? (
-            <button
-              onClick={signOut}
-              title="Sign Out"
-              className="w-10 h-10 rounded-full liquid-pill flex items-center justify-center text-[var(--text-secondary)] hover:text-rose-400 transition-colors cursor-pointer"
+            <Link
+              href={APP_ROUTES.liked}
+              title="Liked Songs"
+              aria-label="Liked Songs"
+              className="w-10 h-10 rounded-full liquid-pill flex items-center justify-center text-[var(--accent-cyan)] hover:scale-105 transition-transform"
             >
-              <LogOut className="w-4 h-4" />
-            </button>
+              <Heart className="w-[18px] h-[18px] fill-current" />
+            </Link>
           ) : (
             <Link
               href={APP_ROUTES.login}

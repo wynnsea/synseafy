@@ -15,7 +15,7 @@ export function TrackArtwork({
   track,
   className = "w-14 h-14",
   rounded = "2xl",
-  spinning = false,
+  spinning,
   showCenterHole = false,
 }: TrackArtworkProps) {
   const { from, via, to, accent, pattern } = track.artworkStyle;
@@ -28,13 +28,20 @@ export function TrackArtwork({
           ? "rounded-xl"
           : "rounded-2xl";
 
+  const isRotatable = typeof spinning === "boolean";
+
   return (
     <div
       className={`relative overflow-hidden select-none shrink-0 ${roundedClass} ${className} ${
-        spinning ? "animate-[spin_18s_linear_infinite]" : ""
+        isRotatable ? "animate-[spin_18s_linear_infinite]" : ""
       }`}
       style={{
         background: `linear-gradient(145deg, ${from} 0%, ${via} 52%, ${to} 100%)`,
+        animationPlayState: isRotatable
+          ? spinning
+            ? "running"
+            : "paused"
+          : undefined,
       }}
     >
       {/* Subtle liquid glass specular highlight */}

@@ -60,7 +60,6 @@ export function NowPlayingSheet() {
   const progress =
     currentTrack.duration > 0 ? currentTime / currentTrack.duration : 0;
 
-  // Determine active lyric line
   const activeLyricIndex = currentTrack.lyrics.reduce((acc, line, idx) => {
     return currentTime >= line.time ? idx : acc;
   }, 0);
@@ -69,33 +68,39 @@ export function NowPlayingSheet() {
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          initial={{ opacity: 0, y: "100%" }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: "100%" }}
-          transition={{ type: "spring", stiffness: 280, damping: 32 }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-0 md:p-6 bg-[var(--bg-canvas)]/80 backdrop-blur-2xl"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.22, ease: "easeOut" }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-0 md:p-6 bg-[var(--bg-canvas)]/95 md:bg-[var(--bg-canvas)]/80"
         >
-          {/* Ambient glow inside fullscreen sheet */}
-          <div
-            className="absolute inset-0 pointer-events-none opacity-65 transition-colors duration-700"
-            style={{
-              background: `radial-gradient(circle at 50% 30%, ${currentTrack.ambient.primary}, transparent 65%)`,
-            }}
-          />
+          {/* GPU-friendly slide-up sheet (no full-screen animated backdrop-blur jank!) */}
+          <motion.div
+            initial={{ y: 48, opacity: 0, scale: 0.98 }}
+            animate={{ y: 0, opacity: 1, scale: 1 }}
+            exit={{ y: 48, opacity: 0, scale: 0.98 }}
+            transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
+            className="relative w-full h-[100dvh] md:h-auto md:max-w-[440px] md:max-h-[820px] md:rounded-[38px] liquid-glass-dock flex flex-col justify-between px-4 pt-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] md:p-5 overflow-hidden will-change-transform"
+          >
+            {/* Lightweight static ambient tint inside sheet */}
+            <div
+              className="absolute inset-0 pointer-events-none opacity-45 transition-colors duration-700"
+              style={{
+                background: `radial-gradient(circle at 50% 28%, ${currentTrack.ambient.primary}, transparent 62%)`,
+              }}
+            />
 
-          {/* Main phone/card container matching reference image */}
-          <div className="relative w-full h-full md:max-w-[440px] md:max-h-[820px] md:rounded-[40px] liquid-glass-strong flex flex-col justify-between p-5 pt-6 overflow-hidden">
-            {/* Top Bar: Back, "Playing", Menu/Tabs */}
-            <div className="flex items-center justify-between z-10">
+            {/* Top Bar: Back, "Playing", Like */}
+            <div className="flex items-center justify-between shrink-0 z-10">
               <button
                 onClick={() => setOpen(false)}
                 aria-label="Close Now Playing"
-                className="w-11 h-11 rounded-full liquid-pill flex items-center justify-center text-[var(--text-primary)] hover:scale-105 transition-transform cursor-pointer"
+                className="w-10 h-10 rounded-full liquid-pill flex items-center justify-center text-[var(--text-primary)] hover:scale-105 transition-transform cursor-pointer"
               >
                 <ArrowLeft className="w-5 h-5" />
               </button>
 
-              <div className="flex flex-col items-center">
+              <div className="flex flex-col items-center min-w-0 px-2">
                 <span className="text-sm font-semibold tracking-wide text-[var(--text-primary)]">
                   {view === "player"
                     ? "Playing"
@@ -103,7 +108,7 @@ export function NowPlayingSheet() {
                       ? "Lyrics"
                       : "Up Next"}
                 </span>
-                <span className="text-[11px] text-[var(--accent-cyan)]">
+                <span className="text-[11px] text-[var(--accent-cyan)] truncate max-w-[180px]">
                   {currentTrack.album}
                 </span>
               </div>
@@ -111,49 +116,37 @@ export function NowPlayingSheet() {
               <button
                 onClick={() => toggleLike(currentTrack.id)}
                 aria-label={liked ? "Unlike song" : "Like song"}
-                className={`w-11 h-11 rounded-full liquid-pill flex items-center justify-center hover:scale-105 transition-transform cursor-pointer ${
-                  liked ? "text-sky-400" : "text-[var(--text-primary)]"
-                }`}
+                className={`w-10 h-10 rounded-full liquid-pill flex items-center justify-center hover:scale-105 transition-transform cursor-pointer ${liked ? "text-sky-400" : "text-[var(--text-primary)]"
+                  }`}
               >
                 <Heart className={`w-5 h-5 ${liked ? "fill-current" : ""}`} />
               </button>
             </div>
 
-            {/* Center Content: Circular Artwork OR Lyrics OR Queue */}
-            <div className="flex-1 flex flex-col items-center justify-center my-4 min-h-0 z-10">
+            {/* Center Content: Full glow breathing room so circular art never clips */}
+            <div className="flex-1 min-h-0 flex flex-col items-center justify-center my-2 z-10">
               {view === "player" && (
-                <div className="flex flex-col items-center w-full">
-                  {/* Glowing circular artwork ring (from reference image) */}
-                  <div className="relative flex items-center justify-center my-2">
-                    <motion.div
-                      animate={{
-                        scale: isPlaying ? [1, 1.06, 1] : 1,
-                        opacity: isPlaying ? [0.55, 0.85, 0.55] : 0.4,
-                      }}
-                      transition={{
-                        duration: 3.4,
-                        repeat: Infinity,
-                        ease: "easeInOut",
-                      }}
-                      className="absolute -inset-4 rounded-full blur-2xl"
+                <div className="flex flex-col items-center justify-center w-full py-4">
+                  <div className="relative flex items-center justify-center shrink-0">
+                    <div
+                      className="absolute -inset-3 rounded-full blur-xl opacity-45 pointer-events-none"
                       style={{ background: currentTrack.ambient.glow }}
                     />
-                    <div className="p-2 rounded-full liquid-pill shadow-2xl">
+                    <div className="p-1.5 rounded-full liquid-pill shadow-xl">
                       <TrackArtwork
                         track={currentTrack}
-                        className="w-52 h-52 sm:w-60 sm:h-60 shadow-2xl"
+                        className="w-40 h-40 sm:w-48 sm:h-48 shadow-2xl"
                         rounded="full"
                         spinning={isPlaying}
                       />
                     </div>
                   </div>
 
-                  {/* Title & Artist */}
-                  <div className="mt-6 text-center px-4 flex flex-col items-center gap-1">
-                    <h2 className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">
+                  <div className="mt-4 sm:mt-5 text-center px-3 max-w-full">
+                    <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-[var(--text-primary)] truncate">
                       {currentTrack.title}
                     </h2>
-                    <p className="text-sm text-[var(--text-secondary)]">
+                    <p className="text-xs sm:text-sm text-[var(--text-secondary)] truncate mt-0.5">
                       {currentTrack.artist}
                     </p>
                   </div>
@@ -161,18 +154,17 @@ export function NowPlayingSheet() {
               )}
 
               {view === "lyrics" && (
-                <div className="w-full h-full overflow-y-auto no-scrollbar px-3 py-4 space-y-5 text-center">
+                <div className="w-full h-full overflow-y-auto no-scrollbar px-3 py-3 space-y-4 text-center">
                   {currentTrack.lyrics.map((line, idx) => {
                     const active = idx === activeLyricIndex;
                     return (
                       <button
                         key={line.time}
                         onClick={() => seek(line.time)}
-                        className={`block w-full text-center transition-all duration-300 cursor-pointer ${
-                          active
-                            ? "text-xl font-bold text-[var(--accent-cyan)] scale-105 drop-shadow-[0_0_12px_rgba(56,189,248,0.55)]"
-                            : "text-base text-[var(--text-secondary)]/65 hover:text-[var(--text-primary)]"
-                        }`}
+                        className={`block w-full text-center transition-all duration-300 cursor-pointer ${active
+                          ? "text-lg sm:text-xl font-bold text-[var(--accent-cyan)]"
+                          : "text-sm sm:text-base text-[var(--text-secondary)]/65 hover:text-[var(--text-primary)]"
+                          }`}
                       >
                         {line.text}
                       </button>
@@ -182,7 +174,7 @@ export function NowPlayingSheet() {
               )}
 
               {view === "queue" && (
-                <div className="w-full h-full overflow-y-auto no-scrollbar space-y-2.5 px-1 py-2">
+                <div className="w-full h-full overflow-y-auto no-scrollbar space-y-2 px-1 py-2">
                   {queue.map((track) => {
                     const active = track.id === currentTrack.id;
                     return (
@@ -192,41 +184,37 @@ export function NowPlayingSheet() {
                           playTrack(track);
                           recordPlayed(track.id);
                         }}
-                        className={`w-full flex items-center gap-3 p-2.5 rounded-full transition-all text-left cursor-pointer ${
-                          active
-                            ? "ocean-gradient-btn"
-                            : "liquid-pill hover:bg-[var(--glass-bg-hover)]"
-                        }`}
+                        className={`w-full flex items-center gap-3 p-2 rounded-full transition-all text-left cursor-pointer ${active
+                          ? "ocean-gradient-btn"
+                          : "liquid-pill hover:bg-[var(--glass-bg-hover)]"
+                          }`}
                       >
                         <TrackArtwork
                           track={track}
-                          className="w-10 h-10"
+                          className="w-9 h-9"
                           rounded="full"
                         />
                         <div className="min-w-0 flex-1">
                           <p
-                            className={`text-sm font-semibold truncate ${
-                              active
-                                ? "text-white"
-                                : "text-[var(--text-primary)]"
-                            }`}
+                            className={`text-xs sm:text-sm font-semibold truncate ${active
+                              ? "text-white"
+                              : "text-[var(--text-primary)]"
+                              }`}
                           >
                             {track.title}
                           </p>
                           <p
-                            className={`text-xs truncate ${
-                              active
-                                ? "text-sky-100"
-                                : "text-[var(--text-secondary)]"
-                            }`}
+                            className={`text-[11px] truncate ${active
+                              ? "text-sky-100"
+                              : "text-[var(--text-secondary)]"
+                              }`}
                           >
                             {track.artist}
                           </p>
                         </div>
                         <span
-                          className={`text-xs font-mono pr-2 ${
-                            active ? "text-white" : "text-[var(--text-muted)]"
-                          }`}
+                          className={`text-[11px] font-mono pr-2 ${active ? "text-white" : "text-[var(--text-muted)]"
+                            }`}
                         >
                           {formatDuration(track.duration)}
                         </span>
@@ -237,100 +225,94 @@ export function NowPlayingSheet() {
               )}
             </div>
 
-            {/* Bottom Liquid Glass Control Sheet (matches reference image) */}
-            <div className="liquid-glass rounded-[32px] p-5 flex flex-col gap-4 z-10">
-              {/* Mini mode tabs + shuffle/repeat */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
-                  <button
-                    onClick={() => setView("player")}
-                    className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer ${
-                      view === "player"
-                        ? "ocean-gradient-btn"
-                        : "liquid-pill text-[var(--text-secondary)]"
-                    }`}
-                  >
-                    <Disc3 className="w-3.5 h-3.5" />
-                    Cover
-                  </button>
-                  <button
-                    onClick={() => setView("lyrics")}
-                    className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer ${
-                      view === "lyrics"
-                        ? "ocean-gradient-btn"
-                        : "liquid-pill text-[var(--text-secondary)]"
-                    }`}
-                  >
-                    <Mic2 className="w-3.5 h-3.5" />
-                    Lyrics
-                  </button>
-                  <button
-                    onClick={() => setView("queue")}
-                    className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer ${
-                      view === "queue"
-                        ? "ocean-gradient-btn"
-                        : "liquid-pill text-[var(--text-secondary)]"
-                    }`}
-                  >
-                    <ListMusic className="w-3.5 h-3.5" />
-                    Queue
-                  </button>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={toggleShuffle}
-                    className={`p-1.5 cursor-pointer ${
-                      isShuffle
-                        ? "text-[var(--accent-cyan)]"
-                        : "text-[var(--text-muted)]"
-                    }`}
-                    aria-label="Shuffle"
-                  >
-                    <Shuffle className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={cycleRepeat}
-                    className={`p-1.5 cursor-pointer ${
-                      repeatMode !== "off"
-                        ? "text-[var(--accent-cyan)]"
-                        : "text-[var(--text-muted)]"
-                    }`}
-                    aria-label="Repeat"
-                  >
-                    {repeatMode === "one" ? (
-                      <Repeat1 className="w-4 h-4" />
-                    ) : (
-                      <Repeat className="w-4 h-4" />
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              {/* Volume row (top of glass sheet, matching reference image) */}
-              <div className="flex items-center justify-center gap-3 px-4">
+            {/* Bottom Liquid Glass Control Sheet (never clips/overflows!) */}
+            <div className="liquid-glass rounded-[28px] p-4 flex flex-col gap-3.5 shrink-0 z-10 w-full">
+              {/* Centered Mode Tabs */}
+              <div className="flex items-center justify-center gap-2">
                 <button
-                  onClick={toggleMute}
-                  className="text-[var(--text-secondary)] cursor-pointer"
-                  aria-label="Mute"
+                  onClick={() => setView("player")}
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer ${view === "player"
+                    ? "ocean-gradient-btn"
+                    : "liquid-pill text-[var(--text-secondary)]"
+                    }`}
                 >
-                  <VolumeX className="w-4 h-4" />
+                  <Disc3 className="w-3.5 h-3.5" />
+                  Cover
                 </button>
-                <input
-                  type="range"
-                  min={0}
-                  max={1}
-                  step={0.02}
-                  value={isMuted ? 0 : volume}
-                  onChange={(e) => setVolume(Number(e.target.value))}
-                  className="w-36 accent-sky-400 cursor-pointer h-1.5 rounded-full"
-                  aria-label="Volume slider"
-                />
-                <Volume2 className="w-4 h-4 text-[var(--text-secondary)]" />
+                <button
+                  onClick={() => setView("lyrics")}
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer ${view === "lyrics"
+                    ? "ocean-gradient-btn"
+                    : "liquid-pill text-[var(--text-secondary)]"
+                    }`}
+                >
+                  <Mic2 className="w-3.5 h-3.5" />
+                  Lyrics
+                </button>
+                <button
+                  onClick={() => setView("queue")}
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer ${view === "queue"
+                    ? "ocean-gradient-btn"
+                    : "liquid-pill text-[var(--text-secondary)]"
+                    }`}
+                >
+                  <ListMusic className="w-3.5 h-3.5" />
+                  Queue
+                </button>
               </div>
 
-              {/* Transport controls: Prev, -10s, Glowing Play/Pause, +10s, Next */}
-              <div className="flex items-center justify-between px-2">
+              {/* Symmetrical Row: Shuffle (left) — Volume (center) — Repeat (right) */}
+              <div className="flex items-center justify-between gap-3 px-1">
+                <button
+                  onClick={toggleShuffle}
+                  className={`p-1.5 transition-colors cursor-pointer shrink-0 ${isShuffle
+                    ? "text-[var(--accent-cyan)]"
+                    : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                    }`}
+                  aria-label="Shuffle"
+                >
+                  <Shuffle className="w-4 h-4" />
+                </button>
+
+                <div className="flex items-center justify-center gap-2.5 flex-1 min-w-0">
+                  <button
+                    onClick={toggleMute}
+                    className="text-[var(--text-secondary)] cursor-pointer shrink-0"
+                    aria-label="Mute"
+                  >
+                    <VolumeX className="w-4 h-4" />
+                  </button>
+                  <input
+                    type="range"
+                    min={0}
+                    max={1}
+                    step={0.02}
+                    value={isMuted ? 0 : volume}
+                    onChange={(e) => setVolume(Number(e.target.value))}
+                    className="w-full max-w-[150px] accent-sky-400 cursor-pointer h-1.5 rounded-full"
+                    aria-label="Volume slider"
+                  />
+                  <Volume2 className="w-4 h-4 text-[var(--text-secondary)] shrink-0" />
+                </div>
+
+                <button
+                  onClick={cycleRepeat}
+                  className={`p-1.5 transition-colors cursor-pointer shrink-0 ${repeatMode !== "off"
+                    ? "text-[var(--accent-cyan)]"
+                    : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                    }`}
+                  aria-label="Repeat"
+                >
+                  {repeatMode === "one" ? (
+                    <Repeat1 className="w-4 h-4" />
+                  ) : (
+                    <Repeat className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
+
+              {/* Transport controls */}
+              <div className="flex items-center justify-between px-1">
                 <button
                   onClick={prevTrack}
                   aria-label="Previous"
@@ -351,12 +333,12 @@ export function NowPlayingSheet() {
                 <button
                   onClick={togglePlay}
                   aria-label={isPlaying ? "Pause" : "Play"}
-                  className="w-16 h-16 rounded-full ocean-gradient-btn flex items-center justify-center hover:scale-105 active:scale-95 transition-transform cursor-pointer"
+                  className="w-14 h-14 sm:w-16 sm:h-16 rounded-full ocean-gradient-btn flex items-center justify-center hover:scale-105 active:scale-95 transition-transform cursor-pointer"
                 >
                   {isPlaying ? (
-                    <Pause className="w-7 h-7 fill-white text-white" />
+                    <Pause className="w-6 h-6 sm:w-7 sm:h-7 fill-white text-white" />
                   ) : (
-                    <Play className="w-7 h-7 fill-white text-white ml-1" />
+                    <Play className="w-6 h-6 sm:w-7 sm:h-7 fill-white text-white ml-0.5" />
                   )}
                 </button>
 
@@ -379,24 +361,26 @@ export function NowPlayingSheet() {
               </div>
 
               {/* Interactive Glowing Waveform Seekbar */}
-              <div className="flex items-center gap-3 pt-1">
-                <span className="text-[11px] font-mono text-[var(--text-secondary)] w-10">
+              <div className="flex items-center gap-2.5">
+                <span className="text-[11px] font-mono text-[var(--text-secondary)] w-9 shrink-0">
                   {formatDuration(currentTime)}
                 </span>
-                <WaveformSeekbar
-                  waveform={currentTrack.waveform}
-                  progress={progress}
-                  onSeek={(ratio) =>
-                    seek(Math.round(ratio * currentTrack.duration))
-                  }
-                  height={40}
-                />
-                <span className="text-[11px] font-mono text-[var(--text-secondary)] w-10 text-right">
+                <div className="flex-1 min-w-0">
+                  <WaveformSeekbar
+                    waveform={currentTrack.waveform}
+                    progress={progress}
+                    onSeek={(ratio) =>
+                      seek(Math.round(ratio * currentTrack.duration))
+                    }
+                    height={36}
+                  />
+                </div>
+                <span className="text-[11px] font-mono text-[var(--text-secondary)] w-9 text-right shrink-0">
                   {formatDuration(currentTrack.duration)}
                 </span>
               </div>
             </div>
-          </div>
+          </motion.div>
         </motion.div>
       )}
     </AnimatePresence>

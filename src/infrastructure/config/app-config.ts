@@ -5,6 +5,8 @@ export const APP_ROUTES = {
   search: "/search",
   liked: "/liked",
   library: "/library",
+  profile: "/profile",
+  recap: "/recap",
   login: "/login",
   register: "/register",
   authCallback: "/auth/callback",

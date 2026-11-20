@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { RepeatMode } from "@/src/domain/entities/player";
 import { Track } from "@/src/domain/entities/track";
 import { MOCK_TRACKS } from "@/src/infrastructure/data/mock-tracks";
+import { useActivityStore } from "@/src/application/stores/use-activity-store";
 
 interface PlayerState {
   currentTrack: Track;
@@ -41,13 +42,15 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   isShuffle: false,
   repeatMode: "all",
 
-  playTrack: (track, newQueue) =>
+  playTrack: (track, newQueue) => {
+    useActivityStore.getState().logPlay(track);
     set((state) => ({
       currentTrack: track,
       queue: newQueue ?? state.queue,
       isPlaying: true,
       currentTime: 0,
-    })),
+    }));
+  },
 
   togglePlay: () => set((state) => ({ isPlaying: !state.isPlaying })),
 

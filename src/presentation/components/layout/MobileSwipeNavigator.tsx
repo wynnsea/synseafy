@@ -5,10 +5,10 @@ import { usePathname, useRouter } from "next/navigation";
 import { useUiStore } from "@/src/application/stores/use-ui-store";
 import { HomeView } from "@/src/presentation/views/HomeView";
 import { SearchView } from "@/src/presentation/views/SearchView";
-import { LikedView } from "@/src/presentation/views/LikedView";
 import { LibraryView } from "@/src/presentation/views/LibraryView";
+import { ProfileView } from "@/src/presentation/views/ProfileView";
 
-const SWIPE_ROUTES = ["/", "/search", "/liked", "/library"] as const;
+const SWIPE_ROUTES = ["/", "/search", "/library", "/profile"] as const;
 
 function isInsideHorizontalScrollOrControl(target: EventTarget | null): boolean {
   let el = target as HTMLElement | null;
@@ -37,10 +37,11 @@ function isInsideHorizontalScrollOrControl(target: EventTarget | null): boolean 
 
 /**
  * Native Banner-Style Mobile ViewPager
- * On mobile (< md) for the 4 primary tabs, all 4 screens sit side-by-side in a
- * horizontal track so swiping left/right directly slides the actual next/prev
- * screen into view 1:1 like a carousel banner, while tapping the bottom nav
- * smoothly animates the slide to that tab.
+ * - Uses optimisticIndex so releasing a swipe transitions smoothly in one
+ *   continuous motion with ZERO bounce-back while Next.js updates the URL.
+ * - Each of the 4 slides has its own independent vertical scroll container
+ *   (h-[100dvh] overflow-y-auto) so shorter pages like Search never scroll
+ *   into empty space below their content.
  */
 export function MobileSwipeNavigator({
   children,
@@ -52,9 +53,24 @@ export function MobileSwipeNavigator({
   const isNowPlayingOpen = useUiStore((s) => s.isNowPlayingOpen);
   const isCreatePlaylistOpen = useUiStore((s) => s.isCreatePlaylistOpen);
 
-  const activeIndex = SWIPE_ROUTES.indexOf(
+  const routeIndex = SWIPE_ROUTES.indexOf(
     pathname as (typeof SWIPE_ROUTES)[number]
   );
+
+  const [pendingNav, setPendingNav] = useState<{
+    from: number;
+    to: number;
+  } | null>(null);
+  const [dragX, setDragX] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+
+  // Optimistically hold target index while router.replace settles -> zero bounce!
+  const displayIndex =
+    pendingNav && pendingNav.from === routeIndex
+      ? pendingNav.to
+      : routeIndex === -1
+        ? 0
+        : routeIndex;
 
   const touchStartRef = useRef<{
     x: number;
@@ -64,12 +80,9 @@ export function MobileSwipeNavigator({
     blocked: boolean;
   } | null>(null);
 
-  const [dragX, setDragX] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
-
   const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
     if (
-      activeIndex === -1 ||
+      routeIndex === -1 ||
       isNowPlayingOpen ||
       isCreatePlaylistOpen ||
       e.touches.length !== 1
@@ -105,9 +118,9 @@ export function MobileSwipeNavigator({
     if (state.locked !== "horizontal") return;
 
     setIsDragging(true);
-    const atStart = activeIndex === 0 && dx > 0;
-    const atEnd = activeIndex === SWIPE_ROUTES.length - 1 && dx < 0;
-    setDragX(atStart || atEnd ? dx * 0.22 : dx);
+    const atStart = displayIndex === 0 && dx > 0;
+    const atEnd = displayIndex === SWIPE_ROUTES.length - 1 && dx < 0;
+    setDragX(atStart || atEnd ? dx * 0.18 : dx);
   };
 
   const handleTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
@@ -127,22 +140,30 @@ export function MobileSwipeNavigator({
     const viewportW = window.innerWidth || 390;
 
     const shouldSwitch =
-      Math.abs(dx) > viewportW * 0.22 || (Math.abs(dx) > 36 && velocity > 0.35);
+      Math.abs(dx) > viewportW * 0.2 || (Math.abs(dx) > 32 && velocity > 0.32);
 
+    let targetIndex = displayIndex;
     if (shouldSwitch) {
-      if (dx < 0 && activeIndex < SWIPE_ROUTES.length - 1) {
-        router.push(SWIPE_ROUTES[activeIndex + 1]);
-      } else if (dx > 0 && activeIndex > 0) {
-        router.push(SWIPE_ROUTES[activeIndex - 1]);
+      if (dx < 0 && displayIndex < SWIPE_ROUTES.length - 1) {
+        targetIndex = displayIndex + 1;
+      } else if (dx > 0 && displayIndex > 0) {
+        targetIndex = displayIndex - 1;
       }
     }
 
-    setDragX(0);
+    // Update pendingNav & reset dragX in the SAME React batch -> zero bounce!
+    if (targetIndex !== routeIndex) {
+      setPendingNav({ from: routeIndex, to: targetIndex });
+      setDragX(0);
+      router.replace(SWIPE_ROUTES[targetIndex], { scroll: false });
+    } else {
+      setDragX(0);
+    }
   };
 
-  // Detail routes (e.g. /playlist/[id]) render normally on both mobile & desktop
-  if (activeIndex === -1) {
-    return <>{children}</>;
+  // Detail routes (e.g. /playlist/[id], /artist/[slug], /album/[slug])
+  if (routeIndex === -1) {
+    return <div className="pb-[172px] md:pb-0">{children}</div>;
   }
 
   return (
@@ -150,7 +171,7 @@ export function MobileSwipeNavigator({
       {/* Desktop: standard single-route view */}
       <div className="hidden md:block">{children}</div>
 
-      {/* Mobile: Real 4-pane horizontal banner slider */}
+      {/* Mobile: Locked viewport 4-pane horizontal ViewPager with per-tab scroll */}
       <div
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
@@ -160,28 +181,28 @@ export function MobileSwipeNavigator({
           setIsDragging(false);
           setDragX(0);
         }}
-        className="md:hidden w-full overflow-x-hidden"
+        className="md:hidden w-full h-[100dvh] overflow-hidden"
       >
         <div
-          className="flex items-start w-full will-change-transform"
+          className="flex w-full h-full will-change-transform"
           style={{
-            transform: `translate3d(calc(${-activeIndex * 100}% + ${dragX}px), 0, 0)`,
+            transform: `translate3d(calc(${-displayIndex * 100}% + ${dragX}px), 0, 0)`,
             transition: isDragging
               ? "none"
-              : "transform 320ms cubic-bezier(0.22, 1, 0.36, 1)",
+              : "transform 280ms cubic-bezier(0.22, 1, 0.36, 1)",
           }}
         >
-          <div className="w-full shrink-0 min-w-full">
+          <div className="w-full shrink-0 min-w-full h-full overflow-y-auto overscroll-y-contain pb-[176px]">
             <HomeView />
           </div>
-          <div className="w-full shrink-0 min-w-full">
+          <div className="w-full shrink-0 min-w-full h-full overflow-y-auto overscroll-y-contain pb-[176px]">
             <SearchView />
           </div>
-          <div className="w-full shrink-0 min-w-full">
-            <LikedView />
-          </div>
-          <div className="w-full shrink-0 min-w-full">
+          <div className="w-full shrink-0 min-w-full h-full overflow-y-auto overscroll-y-contain pb-[176px]">
             <LibraryView />
+          </div>
+          <div className="w-full shrink-0 min-w-full h-full overflow-y-auto overscroll-y-contain pb-[176px]">
+            <ProfileView />
           </div>
         </div>
       </div>

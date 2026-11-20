@@ -36,11 +36,9 @@ export const metadata: Metadata = {
     title: "Synseafy",
   },
   icons: {
-    icon: [
-      { url: "/brand/logo-v3.png", type: "image/png" },
-      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
-    ],
-    apple: [{ url: "/brand/logo-v3.png" }],
+    icon: [{ url: "/brand/logo-v3.png", type: "image/png" }],
+    shortcut: [{ url: "/brand/logo-v3.png", type: "image/png" }],
+    apple: [{ url: "/brand/logo-v3.png", type: "image/png" }],
   },
 };
 

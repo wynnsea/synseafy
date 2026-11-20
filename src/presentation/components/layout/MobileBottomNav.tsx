@@ -4,18 +4,18 @@ import React, { useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Home, Search, Heart, Library } from "lucide-react";
+import { Home, Search, Library, User } from "lucide-react";
 
 /**
- * Mobile App Bottom Bar — MAX 4 menus
- * Supports BOTH tapping any menu item AND sliding your finger smoothly
- * across the liquid glass capsule to scrub between menus!
+ * Mobile App Bottom Bar — MAX 4 menus (Home, Search, Library, Profile)
+ * Active item expands into a glowing ocean-blue pill with icon + label,
+ * and inactive items sit inside circular glass orbs.
  */
 const MOBILE_NAV = [
   { href: "/", label: "Home", icon: Home },
   { href: "/search", label: "Search", icon: Search },
-  { href: "/liked", label: "Liked", icon: Heart },
   { href: "/library", label: "Library", icon: Library },
+  { href: "/profile", label: "Profile", icon: User },
 ] as const;
 
 export function MobileBottomNav() {
@@ -28,7 +28,10 @@ export function MobileBottomNav() {
     const nav = navRef.current;
     if (!nav) return;
     const rect = nav.getBoundingClientRect();
-    const ratio = Math.max(0, Math.min(0.999, (clientX - rect.left) / rect.width));
+    const ratio = Math.max(
+      0,
+      Math.min(0.999, (clientX - rect.left) / rect.width)
+    );
     const idx = Math.floor(ratio * MOBILE_NAV.length);
     if (idx !== lastScrubIndexRef.current) {
       lastScrubIndexRef.current = idx;
@@ -73,11 +76,10 @@ export function MobileBottomNav() {
               <motion.div
                 layout
                 transition={{ type: "spring", stiffness: 420, damping: 32 }}
-                className={`relative flex items-center justify-center gap-2 rounded-full transition-colors ${
-                  isActive
-                    ? "px-5 py-3 text-white font-semibold"
-                    : "w-12 h-12 bg-[var(--glass-orb-bg)] border border-[var(--glass-orb-border)] text-[var(--text-primary)] hover:bg-[var(--glass-bg-hover)]"
-                }`}
+                className={`relative flex items-center justify-center gap-2 rounded-full transition-colors ${isActive
+                  ? "px-5 py-3 text-white font-semibold"
+                  : "w-12 h-12 bg-[var(--glass-orb-bg)] border border-[var(--glass-orb-border)] text-[var(--text-primary)] hover:bg-[var(--glass-bg-hover)]"
+                  }`}
               >
                 {isActive && (
                   <motion.div

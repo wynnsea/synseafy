@@ -24,7 +24,7 @@ export function QuickPickGrid() {
   const quickTracks = MOCK_TRACKS.slice(0, Math.max(0, 5 - quickPlaylists.length));
 
   return (
-    <section className="grid grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3">
+    <section className="grid grid-cols-2 xl:grid-cols-3 gap-2.5 sm:gap-3">
       {/* Tile 1: Liked Songs */}
       <Link
         href="/liked"

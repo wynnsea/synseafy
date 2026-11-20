@@ -155,7 +155,7 @@ export function ArtistDetailView({ slug }: { slug: string }) {
             <Disc3 className="w-5 h-5 text-[var(--accent-cyan)]" />
             Albums &amp; Releases
           </h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
             {albums.map((track) => (
               <Link
                 key={track.album}

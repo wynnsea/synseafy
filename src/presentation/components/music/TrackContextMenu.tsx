@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   MoreHorizontal,
   ListPlus,
@@ -23,13 +24,17 @@ interface TrackContextMenuProps {
   track: Track;
 }
 
+interface MenuAnchor {
+  left: number;
+  top?: number;
+  bottom?: number;
+  origin: "top" | "bottom";
+}
+
 export function TrackContextMenu({ track }: TrackContextMenuProps) {
   const [open, setOpen] = useState(false);
   const [showPlaylists, setShowPlaylists] = useState(false);
-  const [coords, setCoords] = useState<{ top: number; left: number }>({
-    top: 0,
-    left: 0,
-  });
+  const [anchor, setAnchor] = useState<MenuAnchor | null>(null);
 
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -37,33 +42,6 @@ export function TrackContextMenu({ track }: TrackContextMenuProps) {
   const addToQueue = usePlayerStore((s) => s.addToQueue);
   const { playlists, addTrackToPlaylist } = useLibraryStore();
   const showToast = useToastStore((s) => s.showToast);
-
-  // Recalculate exact menu position whenever opened or submenu expands,
-  // keeping it cleanly above the bottom player bar & inside the viewport.
-  useEffect(() => {
-    if (!open || !buttonRef.current || !menuRef.current) return;
-
-    const btnRect = buttonRef.current.getBoundingClientRect();
-    const menuRect = menuRef.current.getBoundingClientRect();
-    const bottomSafeZone = window.innerWidth >= 768 ? 112 : 168;
-    const maxBottom = window.innerHeight - bottomSafeZone;
-
-    const left = Math.max(
-      12,
-      Math.min(
-        window.innerWidth - menuRect.width - 12,
-        btnRect.right - menuRect.width
-      )
-    );
-
-    let top = btnRect.bottom + 8;
-    if (top + menuRect.height > maxBottom) {
-      // Flip upward above the trigger button if it would hit the bottom player bar
-      top = Math.max(12, btnRect.top - menuRect.height - 8);
-    }
-
-    setCoords({ top, left });
-  }, [open, showPlaylists, playlists.length]);
 
   useEffect(() => {
     if (!open) return;
@@ -98,7 +76,28 @@ export function TrackContextMenu({ track }: TrackContextMenuProps) {
 
   const toggleMenu = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setOpen((prev) => !prev);
+    if (open) {
+      setOpen(false);
+      setShowPlaylists(false);
+      return;
+    }
+
+    const rect = buttonRef.current?.getBoundingClientRect();
+    if (rect) {
+      const menuWidth = 224;
+      const left = Math.max(
+        12,
+        Math.min(window.innerWidth - menuWidth - 12, rect.right - menuWidth)
+      );
+
+      setAnchor({
+        left,
+        top: rect.bottom + 8,
+        origin: "top",
+      });
+    }
+
+    setOpen(true);
     setShowPlaylists(false);
   };
 
@@ -107,7 +106,7 @@ export function TrackContextMenu({ track }: TrackContextMenuProps) {
       track.title
     )}`;
     if (navigator.clipboard) {
-      navigator.clipboard.writeText(shareUrl).catch(() => { });
+      navigator.clipboard.writeText(shareUrl).catch(() => {});
     }
     showToast(`Link copied for "${track.title}"`);
     setOpen(false);
@@ -125,105 +124,137 @@ export function TrackContextMenu({ track }: TrackContextMenuProps) {
         <MoreHorizontal className="w-4 h-4" />
       </button>
 
-      {open &&
-        typeof document !== "undefined" &&
+      {typeof document !== "undefined" &&
         createPortal(
-          <div
-            ref={menuRef}
-            onClick={(e) => e.stopPropagation()}
-            style={{ top: coords.top, left: coords.left }}
-            className="fixed w-56 liquid-glass-dock rounded-2xl p-1.5 z-[999] shadow-2xl space-y-0.5"
-          >
-            <button
-              type="button"
-              onClick={() => {
-                addToQueue(track);
-                showToast(`Added "${track.title}" to Queue`);
-                setOpen(false);
-              }}
-              className="w-full px-3 py-2 rounded-xl text-left text-xs font-medium text-[var(--text-primary)] hover:bg-[var(--glass-bg-hover)] flex items-center gap-3 cursor-pointer"
-            >
-              <ListPlus className="w-4 h-4 text-[var(--accent-cyan)] shrink-0" />
-              <span>Add to Queue</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setShowPlaylists((v) => !v)}
-              className="w-full px-3 py-2 rounded-xl text-left text-xs font-medium text-[var(--text-primary)] hover:bg-[var(--glass-bg-hover)] flex items-center justify-between gap-2 cursor-pointer"
-            >
-              <span className="flex items-center gap-3">
-                <PlusCircle className="w-4 h-4 text-[var(--accent-cyan)] shrink-0" />
-                <span>Add to Playlist</span>
-              </span>
-              <ChevronRight
-                className={`w-3.5 h-3.5 text-[var(--text-muted)] shrink-0 transition-transform ${showPlaylists ? "rotate-90" : ""
-                  }`}
-              />
-            </button>
-
-            {showPlaylists && (
-              <div
-                style={{ marginLeft: 19.5, paddingLeft: 11.5 }}
-                className="pr-1 py-1 space-y-0.5 max-h-36 overflow-y-auto no-scrollbar border-l border-[var(--glass-border-side)]"
+          <AnimatePresence>
+            {open && anchor && (
+              <motion.div
+                ref={menuRef}
+                onClick={(e) => e.stopPropagation()}
+                initial={{
+                  opacity: 0,
+                  scale: 0.94,
+                  y: anchor.origin === "bottom" ? 8 : -8,
+                }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{
+                  opacity: 0,
+                  scale: 0.94,
+                  y: anchor.origin === "bottom" ? 8 : -8,
+                }}
+                transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+                style={{
+                  left: anchor.left,
+                  top: anchor.top,
+                  bottom: anchor.bottom,
+                  transformOrigin:
+                    anchor.origin === "bottom" ? "bottom right" : "top right",
+                }}
+                className="fixed w-56 liquid-glass-dock rounded-2xl p-1.5 z-[999] shadow-2xl space-y-0.5"
               >
-                {playlists.map((pl) => {
-                  const alreadyIn = pl.trackIds.includes(track.id);
-                  return (
-                    <button
-                      key={pl.id}
-                      type="button"
-                      onClick={() => {
-                        addTrackToPlaylist(pl.id, track.id);
-                        showToast(
-                          alreadyIn
-                            ? `Already in "${pl.name}"`
-                            : `Added to "${pl.name}"`
-                        );
-                        setOpen(false);
-                        setShowPlaylists(false);
-                      }}
-                      className="w-full px-2 py-1.5 rounded-lg text-left text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--glass-bg-hover)] flex items-center justify-between gap-2 cursor-pointer"
+                <button
+                  type="button"
+                  onClick={() => {
+                    addToQueue(track);
+                    showToast(`Added "${track.title}" to Queue`);
+                    setOpen(false);
+                  }}
+                  className="w-full px-3 py-2 rounded-xl text-left text-xs font-medium text-[var(--text-primary)] hover:bg-[var(--glass-bg-hover)] flex items-center gap-3 cursor-pointer"
+                >
+                  <ListPlus className="w-4 h-4 text-[var(--accent-cyan)] shrink-0" />
+                  <span>Add to Queue</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowPlaylists((v) => !v)}
+                  className="w-full px-3 py-2 rounded-xl text-left text-xs font-medium text-[var(--text-primary)] hover:bg-[var(--glass-bg-hover)] flex items-center justify-between gap-2 cursor-pointer"
+                >
+                  <span className="flex items-center gap-3">
+                    <PlusCircle className="w-4 h-4 text-[var(--accent-cyan)] shrink-0" />
+                    <span>Add to Playlist</span>
+                  </span>
+                  <ChevronRight
+                    className={`w-3.5 h-3.5 text-[var(--text-muted)] shrink-0 transition-transform duration-200 ${
+                      showPlaylists ? "rotate-90" : ""
+                    }`}
+                  />
+                </button>
+
+                <AnimatePresence initial={false}>
+                  {showPlaylists && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                      className="overflow-hidden"
                     >
-                      <span className="truncate">{pl.name}</span>
-                      {alreadyIn && (
-                        <Check className="w-3.5 h-3.5 text-[var(--accent-cyan)] shrink-0" />
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
+                      <div
+                        style={{ marginLeft: 19.5, paddingLeft: 11.5 }}
+                        className="pr-1 py-1 space-y-0.5 max-h-36 overflow-y-auto no-scrollbar border-l border-[var(--glass-border-side)]"
+                      >
+                        {playlists.map((pl) => {
+                          const alreadyIn = pl.trackIds.includes(track.id);
+                          return (
+                            <button
+                              key={pl.id}
+                              type="button"
+                              onClick={() => {
+                                addTrackToPlaylist(pl.id, track.id);
+                                showToast(
+                                  alreadyIn
+                                    ? `Already in "${pl.name}"`
+                                    : `Added to "${pl.name}"`
+                                );
+                                setOpen(false);
+                                setShowPlaylists(false);
+                              }}
+                              className="w-full px-2 py-1.5 rounded-lg text-left text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--glass-bg-hover)] flex items-center justify-between gap-2 cursor-pointer"
+                            >
+                              <span className="truncate">{pl.name}</span>
+                              {alreadyIn && (
+                                <Check className="w-3.5 h-3.5 text-[var(--accent-cyan)] shrink-0" />
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                <div className="h-px bg-[var(--text-muted)]/20 my-1 mx-2" />
+
+                <Link
+                  href={`/artist/${toSlug(track.artist)}`}
+                  onClick={() => setOpen(false)}
+                  className="w-full px-3 py-2 rounded-xl text-left text-xs font-medium text-[var(--text-primary)] hover:bg-[var(--glass-bg-hover)] flex items-center gap-3"
+                >
+                  <User className="w-4 h-4 text-[var(--accent-cyan)] shrink-0" />
+                  <span>Go to Artist</span>
+                </Link>
+
+                <Link
+                  href={`/album/${toSlug(track.album)}`}
+                  onClick={() => setOpen(false)}
+                  className="w-full px-3 py-2 rounded-xl text-left text-xs font-medium text-[var(--text-primary)] hover:bg-[var(--glass-bg-hover)] flex items-center gap-3"
+                >
+                  <Disc3 className="w-4 h-4 text-[var(--accent-cyan)] shrink-0" />
+                  <span>Go to Album</span>
+                </Link>
+
+                <button
+                  type="button"
+                  onClick={handleShare}
+                  className="w-full px-3 py-2 rounded-xl text-left text-xs font-medium text-[var(--text-primary)] hover:bg-[var(--glass-bg-hover)] flex items-center gap-3 cursor-pointer"
+                >
+                  <Share2 className="w-4 h-4 text-[var(--accent-cyan)] shrink-0" />
+                  <span>Copy Track Link</span>
+                </button>
+              </motion.div>
             )}
-
-            <div className="h-px bg-[var(--text-muted)]/20 my-1 mx-2" />
-
-            <Link
-              href={`/artist/${toSlug(track.artist)}`}
-              onClick={() => setOpen(false)}
-              className="w-full px-3 py-2 rounded-xl text-left text-xs font-medium text-[var(--text-primary)] hover:bg-[var(--glass-bg-hover)] flex items-center gap-3"
-            >
-              <User className="w-4 h-4 text-[var(--accent-cyan)] shrink-0" />
-              <span>Go to Artist</span>
-            </Link>
-
-            <Link
-              href={`/album/${toSlug(track.album)}`}
-              onClick={() => setOpen(false)}
-              className="w-full px-3 py-2 rounded-xl text-left text-xs font-medium text-[var(--text-primary)] hover:bg-[var(--glass-bg-hover)] flex items-center gap-3"
-            >
-              <Disc3 className="w-4 h-4 text-[var(--accent-cyan)] shrink-0" />
-              <span>Go to Album</span>
-            </Link>
-
-            <button
-              type="button"
-              onClick={handleShare}
-              className="w-full px-3 py-2 rounded-xl text-left text-xs font-medium text-[var(--text-primary)] hover:bg-[var(--glass-bg-hover)] flex items-center gap-3 cursor-pointer"
-            >
-              <Share2 className="w-4 h-4 text-[var(--accent-cyan)] shrink-0" />
-              <span>Copy Track Link</span>
-            </button>
-          </div>,
+          </AnimatePresence>,
           document.body
         )}
     </div>

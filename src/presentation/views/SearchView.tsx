@@ -1,8 +1,17 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { Search, X, Sparkles, Clock, Disc3 } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  Search,
+  X,
+  Sparkles,
+  Clock,
+  Disc3,
+  ChevronDown,
+  Check,
+} from "lucide-react";
 import { Track } from "@/src/domain/entities/track";
 import { GENRES, MOCK_TRACKS } from "@/src/infrastructure/data/mock-tracks";
 import { musicRepository } from "@/src/infrastructure/repositories/mock-music-repository";
@@ -52,9 +61,25 @@ const BROWSE_TILES = [
 export function SearchView() {
   const [query, setQuery] = useState("");
   const [selectedGenre, setSelectedGenre] = useState("All");
+  const [genreMenuOpen, setGenreMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<SearchTab>("all");
   const [results, setResults] = useState<Track[]>(MOCK_TRACKS);
   const [settledKey, setSettledKey] = useState(":All");
+  const genreMenuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!genreMenuOpen) return;
+    const onOutside = (e: MouseEvent) => {
+      if (
+        genreMenuRef.current &&
+        !genreMenuRef.current.contains(e.target as Node)
+      ) {
+        setGenreMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onOutside);
+    return () => document.removeEventListener("mousedown", onOutside);
+  }, [genreMenuOpen]);
 
   const playlists = useLibraryStore((s) => s.playlists);
   const {
@@ -249,21 +274,56 @@ export function SearchView() {
               </div>
 
               {selectedGenre !== "All" && (
-                <div className="flex items-center gap-2">
+                <div ref={genreMenuRef} className="relative flex items-center gap-2">
                   <span className="text-xs text-[var(--text-muted)]">
                     Genre:
                   </span>
-                  <select
-                    value={selectedGenre}
-                    onChange={(e) => setSelectedGenre(e.target.value)}
-                    className="liquid-pill rounded-full px-3 py-1.5 text-xs font-semibold text-[var(--text-primary)] bg-transparent focus:outline-none cursor-pointer"
+                  <button
+                    type="button"
+                    onClick={() => setGenreMenuOpen((v) => !v)}
+                    className="liquid-pill rounded-full px-3.5 py-1.5 text-xs font-semibold text-[var(--text-primary)] flex items-center gap-2 hover:bg-[var(--glass-bg-hover)] transition-colors cursor-pointer"
                   >
-                    {GENRES.map((g) => (
-                      <option key={g} value={g} className="text-slate-900">
-                        {g}
-                      </option>
-                    ))}
-                  </select>
+                    <span>{selectedGenre}</span>
+                    <ChevronDown
+                      className={`w-3.5 h-3.5 text-[var(--accent-cyan)] transition-transform duration-200 ${
+                        genreMenuOpen ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+
+                  <AnimatePresence>
+                    {genreMenuOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -6, scale: 0.96 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -6, scale: 0.96 }}
+                        transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
+                        className="absolute right-0 top-10 w-44 liquid-glass-dock rounded-2xl p-1.5 z-40 shadow-2xl space-y-0.5"
+                      >
+                        {GENRES.map((g) => {
+                          const isSelected = g === selectedGenre;
+                          return (
+                            <button
+                              key={g}
+                              type="button"
+                              onClick={() => {
+                                setSelectedGenre(g);
+                                setGenreMenuOpen(false);
+                              }}
+                              className={`w-full px-3 py-2 rounded-xl text-left text-xs font-medium flex items-center justify-between transition-colors cursor-pointer ${
+                                isSelected
+                                  ? "ocean-gradient-btn"
+                                  : "text-[var(--text-primary)] hover:bg-[var(--glass-bg-hover)]"
+                              }`}
+                            >
+                              <span>{g}</span>
+                              {isSelected && <Check className="w-3.5 h-3.5" />}
+                            </button>
+                          );
+                        })}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               )}
             </div>
@@ -306,7 +366,7 @@ export function SearchView() {
                   <h3 className="text-base font-bold text-[var(--text-primary)]">
                     Artists
                   </h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3.5">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3.5">
                     {matchingArtists.map((track) => (
                       <Link
                         key={track.artist}
@@ -339,7 +399,7 @@ export function SearchView() {
                   <h3 className="text-base font-bold text-[var(--text-primary)]">
                     Albums
                   </h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3.5">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3.5">
                     {matchingAlbums.map((track) => (
                       <Link
                         key={track.album}

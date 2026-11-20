@@ -8,8 +8,8 @@ import { motion } from "framer-motion";
 import {
   Home,
   Search,
-  Heart,
   Library,
+  User,
   Plus,
   PanelLeftClose,
   PanelLeftOpen,
@@ -20,8 +20,8 @@ import { useUiStore } from "@/src/application/stores/use-ui-store";
 const NAV_ITEMS = [
   { href: "/", label: "Home", icon: Home },
   { href: "/search", label: "Search", icon: Search },
-  { href: "/liked", label: "Liked", icon: Heart },
   { href: "/library", label: "Library", icon: Library },
+  { href: "/profile", label: "Profile", icon: User },
 ];
 
 export function DesktopLiquidSidebar() {
@@ -32,15 +32,15 @@ export function DesktopLiquidSidebar() {
 
   return (
     <aside
-      className={`hidden md:flex flex-col gap-3 h-screen p-4 pr-2 shrink-0 z-30 select-none transition-all duration-500 ease-out overflow-hidden ${
-        isSidebarExpanded ? "w-[254px]" : "w-[96px]"
+      className={`hidden md:flex flex-col gap-3 h-screen p-3 lg:p-4 pr-1.5 lg:pr-2 shrink-0 z-30 select-none transition-all duration-500 ease-out overflow-hidden ${
+        isSidebarExpanded ? "w-[88px] lg:w-[254px]" : "w-[88px] lg:w-[96px]"
       }`}
     >
-      {/* POD 1: Floating Liquid Brand + Theme Pod */}
-      <div className="liquid-glass-strong rounded-[28px] p-3.5 flex flex-col gap-3 shrink-0">
+      {/* POD 1: Floating Liquid Brand Pod (auto-compact rail on md tablet, expandable on lg+) */}
+      <div className="liquid-glass-strong rounded-[28px] p-3 lg:p-3.5 flex flex-col gap-3 shrink-0">
         <div
-          className={`flex items-center ${
-            isSidebarExpanded ? "justify-between" : "justify-center"
+          className={`flex items-center justify-center ${
+            isSidebarExpanded ? "lg:justify-between" : ""
           }`}
         >
           <Link href="/" className="flex items-center gap-3 group min-w-0">
@@ -55,7 +55,7 @@ export function DesktopLiquidSidebar() {
               />
             </div>
             {isSidebarExpanded && (
-              <div className="min-w-0">
+              <div className="hidden lg:block min-w-0">
                 <p className="font-semibold tracking-tight text-[15px] leading-tight truncate text-[var(--text-primary)]">
                   Synseafy
                 </p>
@@ -70,7 +70,7 @@ export function DesktopLiquidSidebar() {
             <button
               onClick={toggleSidebar}
               title="Compact Dock"
-              className="w-8 h-8 rounded-full liquid-pill flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+              className="hidden lg:flex w-8 h-8 rounded-full liquid-pill items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
             >
               <PanelLeftClose className="w-4 h-4" />
             </button>
@@ -78,7 +78,7 @@ export function DesktopLiquidSidebar() {
         </div>
 
         {!isSidebarExpanded && (
-          <div className="flex justify-center">
+          <div className="hidden lg:flex justify-center">
             <button
               onClick={toggleSidebar}
               title="Expand Dock"
@@ -91,7 +91,7 @@ export function DesktopLiquidSidebar() {
       </div>
 
       {/* POD 2: Sculpted Floating Navigation Capsule */}
-      <nav className="liquid-glass rounded-[28px] p-2.5 flex flex-col gap-1.5 shrink-0">
+      <nav className="liquid-glass rounded-[28px] p-2 lg:p-2.5 flex flex-col gap-1.5 shrink-0">
         {NAV_ITEMS.map((item) => {
           const isActive =
             item.href === "/"
@@ -104,10 +104,10 @@ export function DesktopLiquidSidebar() {
               key={item.href}
               href={item.href}
               title={item.label}
-              className={`relative flex items-center gap-3 rounded-2xl transition-colors ${
+              className={`relative flex items-center gap-3 rounded-2xl transition-colors w-11 h-11 mx-auto justify-center ${
                 isSidebarExpanded
-                  ? "px-3.5 py-2.5"
-                  : "w-11 h-11 mx-auto justify-center"
+                  ? "lg:w-full lg:h-auto lg:mx-0 lg:justify-start lg:px-3.5 lg:py-2.5"
+                  : ""
               } ${
                 isActive
                   ? "text-white font-semibold"
@@ -123,7 +123,7 @@ export function DesktopLiquidSidebar() {
               )}
               <Icon className="relative z-10 w-[18px] h-[18px] shrink-0" />
               {isSidebarExpanded && (
-                <span className="relative z-10 text-sm tracking-tight">
+                <span className="hidden lg:inline relative z-10 text-sm tracking-tight">
                   {item.label}
                 </span>
               )}
@@ -132,15 +132,15 @@ export function DesktopLiquidSidebar() {
         })}
       </nav>
 
-      {/* POD 3: Floating Liquid Playlist Orbs (locks neatly to viewport height, zero page scroll) */}
-      <div className="liquid-glass rounded-[28px] p-3 flex-1 min-h-0 flex flex-col gap-2.5 overflow-hidden">
+      {/* POD 3: Floating Liquid Playlist Orbs */}
+      <div className="liquid-glass rounded-[28px] p-2.5 lg:p-3 flex-1 min-h-0 flex flex-col gap-2.5 overflow-hidden">
         <div
-          className={`flex items-center shrink-0 ${
-            isSidebarExpanded ? "justify-between px-1" : "justify-center"
+          className={`flex items-center justify-center shrink-0 ${
+            isSidebarExpanded ? "lg:justify-between lg:px-1" : ""
           }`}
         >
           {isSidebarExpanded && (
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+            <span className="hidden lg:inline text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
               Ocean Mixes
             </span>
           )}
@@ -161,11 +161,13 @@ export function DesktopLiquidSidebar() {
                 key={pl.id}
                 href={`/playlist/${pl.id}`}
                 title={pl.name}
-                className={`group flex items-center gap-3 rounded-2xl p-1.5 border transition-all shrink-0 ${
+                className={`group flex items-center justify-center gap-3 rounded-2xl p-1.5 border transition-all shrink-0 ${
+                  isSidebarExpanded ? "lg:justify-start" : ""
+                } ${
                   active
                     ? "bg-[var(--glass-bg-hover)] border-[var(--accent-cyan)]/50"
                     : "border-transparent hover:bg-[var(--glass-bg-hover)]"
-                } ${!isSidebarExpanded ? "justify-center" : ""}`}
+                }`}
               >
                 <div
                   className="w-9 h-9 rounded-full shrink-0 flex items-center justify-center text-white text-[11px] font-bold shadow-md ring-2 ring-white/30 group-hover:scale-105 transition-transform"
@@ -176,7 +178,7 @@ export function DesktopLiquidSidebar() {
                   {pl.name.slice(0, 2).toUpperCase()}
                 </div>
                 {isSidebarExpanded && (
-                  <div className="min-w-0 flex-1">
+                  <div className="hidden lg:block min-w-0 flex-1">
                     <p className="text-[13px] font-medium truncate text-[var(--text-primary)]">
                       {pl.name}
                     </p>

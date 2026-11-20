@@ -12,6 +12,7 @@ interface AuthState {
   signInWithEmail: (email: string) => void;
   registerWithEmail: (name: string, email: string) => void;
   signInWithGoogle: () => void;
+  updateProfileName: (name: string) => void;
   signOut: () => void;
 }
 
@@ -61,6 +62,19 @@ export const useAuthStore = create<AuthState>((set) => ({
       },
     });
   },
+
+  updateProfileName: (name) =>
+    set((state) => {
+      if (!state.user) return state;
+      const cleanName = name.trim() || state.user.name;
+      return {
+        user: {
+          ...state.user,
+          name: cleanName,
+          initials: getInitials(cleanName),
+        },
+      };
+    }),
 
   signOut: () => set({ user: null }),
 }));
