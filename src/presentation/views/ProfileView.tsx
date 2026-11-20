@@ -25,12 +25,13 @@ import { useAuthStore } from "@/src/application/stores/use-auth-store";
 import { useLibraryStore } from "@/src/application/stores/use-library-store";
 import { useActivityStore } from "@/src/application/stores/use-activity-store";
 import { useThemeStore } from "@/src/application/stores/use-theme-store";
+import { usePreferencesStore } from "@/src/application/stores/use-preferences-store";
 import { useToastStore } from "@/src/application/stores/use-toast-store";
 import { APP_ROUTES } from "@/src/infrastructure/config/app-config";
 import { TopHeader } from "@/src/presentation/components/layout/TopHeader";
 
 export function ProfileView() {
-  const { user, updateProfileName, signOut } = useAuthStore();
+  const { user, status, updateProfileName, signOut } = useAuthStore();
   const { likedTrackIds, playlists } = useLibraryStore();
   const records = useActivityStore((s) => s.records);
   const { theme, toggleTheme } = useThemeStore();
@@ -38,22 +39,42 @@ export function ProfileView() {
 
   const [editingName, setEditingName] = useState(false);
   const [draftName, setDraftName] = useState("");
-  const [highQualityAudio, setHighQualityAudio] = useState(true);
-  const [autoplaySimilar, setAutoplaySimilar] = useState(true);
-  const [ytmSync, setYtmSync] = useState(false);
+  const { highQualityAudio, autoplaySimilar, ytmSync, toggle } =
+    usePreferencesStore();
 
   const startEditName = () => {
     setDraftName(user?.name ?? "");
     setEditingName(true);
   };
 
-  const saveName = (e: React.FormEvent) => {
+  const saveName = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!draftName.trim()) return;
-    updateProfileName(draftName);
+    const result = await updateProfileName(draftName);
+    if (!result.ok) {
+      showToast(result.error);
+      return;
+    }
     setEditingName(false);
     showToast("Profile name updated");
   };
+
+  // Still restoring the saved session: show a placeholder instead of flashing "sign in"
+  if (status === "loading") {
+    return (
+      <div className="w-full max-w-[1440px] mx-auto">
+        <TopHeader title="Profile & Account" subtitle="Loading your account" />
+        <div className="px-4 md:px-7 space-y-6 pb-6">
+          <div className="liquid-glass-strong rounded-[32px] h-32 animate-pulse" />
+          <div className="grid grid-cols-3 gap-3">
+            <div className="liquid-glass rounded-[24px] h-24 animate-pulse" />
+            <div className="liquid-glass rounded-[24px] h-24 animate-pulse" />
+            <div className="liquid-glass rounded-[24px] h-24 animate-pulse" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Not signed in: no profile data at all, just ask the user to sign in
   if (!user) {
@@ -281,9 +302,8 @@ export function ProfileView() {
             <button
               type="button"
               onClick={() => {
-                setHighQualityAudio((v) => !v);
                 showToast(
-                  !highQualityAudio
+                  toggle("highQualityAudio")
                     ? "High Quality Audio enabled"
                     : "Standard Audio enabled",
                 );
@@ -308,9 +328,8 @@ export function ProfileView() {
             <button
               type="button"
               onClick={() => {
-                setAutoplaySimilar((v) => !v);
                 showToast(
-                  !autoplaySimilar
+                  toggle("autoplaySimilar")
                     ? "Autoplay similar tracks enabled"
                     : "Autoplay disabled",
                 );
@@ -335,9 +354,8 @@ export function ProfileView() {
             <button
               type="button"
               onClick={() => {
-                setYtmSync((v) => !v);
                 showToast(
-                  !ytmSync
+                  toggle("ytmSync")
                     ? "YouTube Music Sync ready (UI preview)"
                     : "YouTube Music Sync paused",
                 );
@@ -365,8 +383,7 @@ export function ProfileView() {
         <button
           type="button"
           onClick={() => {
-            signOut();
-            showToast("Signed out of Synseafy");
+            void signOut().then(() => showToast("Signed out of Synseafy"));
           }}
           className="w-full py-3.5 rounded-[22px] liquid-glass text-sm font-semibold text-rose-400 hover:bg-rose-500/15 flex items-center justify-center gap-2 transition-colors cursor-pointer"
         >

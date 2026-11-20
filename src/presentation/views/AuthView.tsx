@@ -14,6 +14,7 @@ import {
   Moon,
   ArrowLeft,
   ArrowRight,
+  Loader2,
 } from "lucide-react";
 import { useThemeStore } from "@/src/application/stores/use-theme-store";
 import { useAuthStore } from "@/src/application/stores/use-auth-store";
@@ -60,10 +61,14 @@ export function AuthView({ mode }: AuthViewProps) {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [busy, setBusy] = useState<"email" | "google" | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (busy) return;
     setError("");
+    setNotice("");
 
     if (!email.trim() || !password.trim()) {
       setError("Please fill in your email and password.");
@@ -83,17 +88,38 @@ export function AuthView({ mode }: AuthViewProps) {
         setError("Passwords do not match.");
         return;
       }
-      registerWithEmail(name, email);
-    } else {
-      signInWithEmail(email);
     }
 
+    setBusy("email");
+    const result = isLogin
+      ? await signInWithEmail(email, password)
+      : await registerWithEmail(name, email, password);
+    setBusy(null);
+
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
+    if (result.needsEmailConfirmation) {
+      setNotice(
+        `Almost there! We sent a confirmation link to ${email.trim()}. Open it to activate your account.`
+      );
+      return;
+    }
     router.push(APP_ROUTES.home);
   };
 
-  const handleGoogleAuth = () => {
-    signInWithGoogle();
-    router.push(APP_ROUTES.home);
+  const handleGoogleAuth = async () => {
+    if (busy) return;
+    setError("");
+    setNotice("");
+    setBusy("google");
+    const result = await signInWithGoogle();
+    // On success the browser is already leaving for Google
+    if (!result.ok) {
+      setBusy(null);
+      setError(result.error);
+    }
   };
 
   return (
@@ -155,9 +181,14 @@ export function AuthView({ mode }: AuthViewProps) {
           <button
             type="button"
             onClick={handleGoogleAuth}
-            className="w-full liquid-pill rounded-full py-3.5 px-5 flex items-center justify-center gap-3 text-sm font-semibold text-[var(--text-primary)] hover:bg-[var(--glass-bg-hover)] hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer"
+            disabled={busy !== null}
+            className="w-full disabled:opacity-60 disabled:pointer-events-none liquid-pill rounded-full py-3.5 px-5 flex items-center justify-center gap-3 text-sm font-semibold text-[var(--text-primary)] hover:bg-[var(--glass-bg-hover)] hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer"
           >
-            <GoogleIcon />
+            {busy === "google" ? (
+              <Loader2 className="w-5 h-5 animate-spin text-[var(--accent-cyan)]" />
+            ) : (
+              <GoogleIcon />
+            )}
             <span>
               {isLogin ? "Continue with Google" : "Sign up with Google"}
             </span>
@@ -261,15 +292,30 @@ export function AuthView({ mode }: AuthViewProps) {
             )}
 
             {error && (
-              <p className="text-xs text-rose-400 text-center px-2">{error}</p>
+              <p role="alert" className="text-xs text-rose-400 text-center px-2">
+                {error}
+              </p>
+            )}
+            {notice && (
+              <p
+                role="status"
+                className="text-xs text-[var(--accent-cyan)] text-center px-2 leading-relaxed"
+              >
+                {notice}
+              </p>
             )}
 
             <button
               type="submit"
-              className="w-full mt-2 py-3.5 px-6 rounded-full ocean-gradient-btn text-sm font-semibold flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99] transition-transform cursor-pointer"
+              disabled={busy !== null}
+              className="w-full disabled:opacity-60 disabled:pointer-events-none mt-2 py-3.5 px-6 rounded-full ocean-gradient-btn text-sm font-semibold flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99] transition-transform cursor-pointer"
             >
               <span>{isLogin ? "Sign In" : "Create Account"}</span>
-              <ArrowRight className="w-4 h-4" />
+              {busy === "email" ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <ArrowRight className="w-4 h-4" />
+              )}
             </button>
           </form>
 

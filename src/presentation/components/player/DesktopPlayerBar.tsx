@@ -46,15 +46,20 @@ export function DesktopPlayerBar() {
   const toggleLike = useLibraryStore((s) => s.toggleLike);
   const { activeDrawer, toggleDrawer, setNowPlayingOpen } = useUiStore();
 
+  const hasActiveTrack = usePlayerStore((s) => s.hasActiveTrack);
+  if (!hasActiveTrack) return null;
+
   const liked = likedTrackIds.includes(currentTrack.id);
   const progress =
     currentTrack.duration > 0 ? currentTime / currentTrack.duration : 0;
 
+  // Sized with container queries (@2xl / @4xl = the bar's own width), because the
+  // xl right rail makes this column narrower than the viewport suggests.
   return (
-    <div className="hidden md:block absolute bottom-0 inset-x-0 px-3 lg:px-7 pb-4 pt-8 z-40 pointer-events-none bg-gradient-to-t from-[var(--bg-canvas)] via-[var(--bg-canvas)]/92 to-transparent">
-      <div className="pointer-events-auto max-w-[1380px] mx-auto liquid-glass-dock rounded-full px-3.5 lg:px-6 py-2.5 lg:py-3 flex items-center justify-between gap-3 lg:gap-5">
+    <div className="@container hidden md:block absolute bottom-0 inset-x-0 px-3 @2xl:px-7 pb-4 pt-8 z-40 pointer-events-none bg-gradient-to-t from-[var(--bg-canvas)] via-[var(--bg-canvas)]/92 to-transparent">
+      <div className="pointer-events-auto max-w-[1380px] mx-auto liquid-glass-dock rounded-full px-3.5 @2xl:px-6 py-2.5 @2xl:py-3 flex items-center justify-between gap-3 @2xl:gap-5">
         {/* Left: Track Info (fluid on tablet, generous on desktop) */}
-        <div className="flex items-center gap-2.5 lg:gap-3 min-w-0 w-[170px] lg:w-[220px] xl:w-[260px] shrink-0">
+        <div className="flex items-center gap-2.5 @2xl:gap-3 min-w-0 w-[170px] @2xl:w-[220px] @4xl:w-[260px] shrink-0">
           <button
             onClick={() => setNowPlayingOpen(true)}
             className="relative group cursor-pointer shrink-0"
@@ -62,7 +67,7 @@ export function DesktopPlayerBar() {
           >
             <TrackArtwork
               track={currentTrack}
-              className="w-10 h-10 lg:w-12 lg:h-12 ring-2 ring-white/30"
+              className="w-10 h-10 @2xl:w-12 @2xl:h-12 ring-2 ring-white/30"
               rounded="full"
               spinning={isPlaying}
             />
@@ -74,11 +79,11 @@ export function DesktopPlayerBar() {
           <div className="min-w-0 flex-1">
             <button
               onClick={() => setNowPlayingOpen(true)}
-              className="text-xs lg:text-sm font-semibold text-[var(--text-primary)] hover:text-[var(--accent-cyan)] truncate block max-w-full text-left transition-colors cursor-pointer"
+              className="text-xs @2xl:text-sm font-semibold text-[var(--text-primary)] hover:text-[var(--accent-cyan)] truncate block max-w-full text-left transition-colors cursor-pointer"
             >
               {currentTrack.title}
             </button>
-            <p className="text-[11px] lg:text-xs text-[var(--text-secondary)] truncate">
+            <p className="text-[11px] @2xl:text-xs text-[var(--text-secondary)] truncate">
               {currentTrack.artist}
             </p>
           </div>
@@ -86,7 +91,7 @@ export function DesktopPlayerBar() {
           <button
             onClick={() => toggleLike(currentTrack.id)}
             aria-label="Like track"
-            className={`hidden xl:flex w-9 h-9 rounded-full liquid-pill items-center justify-center transition-all cursor-pointer shrink-0 ${
+            className={`hidden @4xl:flex w-9 h-9 rounded-full liquid-pill items-center justify-center transition-all cursor-pointer shrink-0 ${
               liked
                 ? "text-sky-400 scale-105"
                 : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
@@ -97,67 +102,67 @@ export function DesktopPlayerBar() {
         </div>
 
         {/* Center: Controls + Interactive Waveform (fluid flex-1 min-w-0) */}
-        <div className="flex-1 min-w-0 max-w-[520px] flex flex-col items-center gap-1 lg:gap-1.5">
-          <div className="flex items-center gap-2.5 lg:gap-4">
+        <div className="flex-1 min-w-0 max-w-[520px] flex flex-col items-center gap-1 @2xl:gap-1.5">
+          <div className="flex items-center gap-2.5 @2xl:gap-4">
             <button
               onClick={toggleShuffle}
               title="Shuffle"
-              className={`p-1 lg:p-1.5 rounded-full transition-colors cursor-pointer ${
+              className={`p-1 @2xl:p-1.5 rounded-full transition-colors cursor-pointer ${
                 isShuffle
                   ? "text-[var(--accent-cyan)]"
                   : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
               }`}
             >
-              <Shuffle className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
+              <Shuffle className="w-3.5 h-3.5 @2xl:w-4 @2xl:h-4" />
             </button>
 
             <button
               onClick={prevTrack}
               title="Previous"
-              className="p-1 lg:p-1.5 text-[var(--text-primary)] hover:text-[var(--accent-cyan)] transition-colors cursor-pointer"
+              className="p-1 @2xl:p-1.5 text-[var(--text-primary)] hover:text-[var(--accent-cyan)] transition-colors cursor-pointer"
             >
-              <SkipBack className="w-4 h-4 lg:w-5 lg:h-5 fill-current" />
+              <SkipBack className="w-4 h-4 @2xl:w-5 @2xl:h-5 fill-current" />
             </button>
 
             <button
               onClick={togglePlay}
               title={isPlaying ? "Pause" : "Play"}
-              className="w-9 h-9 lg:w-11 lg:h-11 rounded-full ocean-gradient-btn flex items-center justify-center hover:scale-105 active:scale-95 transition-transform cursor-pointer shrink-0"
+              className="w-9 h-9 @2xl:w-11 @2xl:h-11 rounded-full ocean-gradient-btn flex items-center justify-center hover:scale-105 active:scale-95 transition-transform cursor-pointer shrink-0"
             >
               {isPlaying ? (
-                <Pause className="w-4 h-4 lg:w-5 lg:h-5 fill-white text-white" />
+                <Pause className="w-4 h-4 @2xl:w-5 @2xl:h-5 fill-white text-white" />
               ) : (
-                <Play className="w-4 h-4 lg:w-5 lg:h-5 fill-white text-white ml-0.5" />
+                <Play className="w-4 h-4 @2xl:w-5 @2xl:h-5 fill-white text-white ml-0.5" />
               )}
             </button>
 
             <button
               onClick={nextTrack}
               title="Next"
-              className="p-1 lg:p-1.5 text-[var(--text-primary)] hover:text-[var(--accent-cyan)] transition-colors cursor-pointer"
+              className="p-1 @2xl:p-1.5 text-[var(--text-primary)] hover:text-[var(--accent-cyan)] transition-colors cursor-pointer"
             >
-              <SkipForward className="w-4 h-4 lg:w-5 lg:h-5 fill-current" />
+              <SkipForward className="w-4 h-4 @2xl:w-5 @2xl:h-5 fill-current" />
             </button>
 
             <button
               onClick={cycleRepeat}
               title={`Repeat: ${repeatMode}`}
-              className={`p-1 lg:p-1.5 rounded-full transition-colors cursor-pointer ${
+              className={`p-1 @2xl:p-1.5 rounded-full transition-colors cursor-pointer ${
                 repeatMode !== "off"
                   ? "text-[var(--accent-cyan)]"
                   : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
               }`}
             >
               {repeatMode === "one" ? (
-                <Repeat1 className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
+                <Repeat1 className="w-3.5 h-3.5 @2xl:w-4 @2xl:h-4" />
               ) : (
-                <Repeat className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
+                <Repeat className="w-3.5 h-3.5 @2xl:w-4 @2xl:h-4" />
               )}
             </button>
           </div>
 
-          <div className="w-full flex items-center gap-2 lg:gap-3 min-w-0">
-            <span className="text-[10px] lg:text-[11px] font-mono text-[var(--text-secondary)] w-8 lg:w-10 text-right shrink-0">
+          <div className="w-full flex items-center gap-2 @2xl:gap-3 min-w-0">
+            <span className="text-[10px] @2xl:text-[11px] font-mono text-[var(--text-secondary)] w-8 @2xl:w-10 text-right shrink-0">
               {formatDuration(currentTime)}
             </span>
             <div className="flex-1 min-w-0">
@@ -171,48 +176,48 @@ export function DesktopPlayerBar() {
                 compact
               />
             </div>
-            <span className="text-[10px] lg:text-[11px] font-mono text-[var(--text-secondary)] w-8 lg:w-10 shrink-0">
+            <span className="text-[10px] @2xl:text-[11px] font-mono text-[var(--text-secondary)] w-8 @2xl:w-10 shrink-0">
               {formatDuration(currentTrack.duration)}
             </span>
           </div>
         </div>
 
         {/* Right: Lyrics, Queue & Volume (compact on tablet, full slider on xl) */}
-        <div className="flex items-center justify-end gap-1.5 lg:gap-2.5 shrink-0">
+        <div className="flex items-center justify-end gap-1.5 @2xl:gap-2.5 shrink-0">
           <button
             onClick={() => toggleDrawer("lyrics")}
             title="Lyrics"
-            className={`w-8 h-8 lg:w-9 lg:h-9 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+            className={`w-8 h-8 @2xl:w-9 @2xl:h-9 rounded-full flex items-center justify-center transition-all cursor-pointer ${
               activeDrawer === "lyrics"
                 ? "ocean-gradient-btn"
                 : "liquid-pill text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
             }`}
           >
-            <Mic2 className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
+            <Mic2 className="w-3.5 h-3.5 @2xl:w-4 @2xl:h-4" />
           </button>
 
           <button
             onClick={() => toggleDrawer("queue")}
             title="Queue"
-            className={`w-8 h-8 lg:w-9 lg:h-9 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+            className={`w-8 h-8 @2xl:w-9 @2xl:h-9 rounded-full flex items-center justify-center transition-all cursor-pointer ${
               activeDrawer === "queue"
                 ? "ocean-gradient-btn"
                 : "liquid-pill text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
             }`}
           >
-            <ListMusic className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
+            <ListMusic className="w-3.5 h-3.5 @2xl:w-4 @2xl:h-4" />
           </button>
 
           <div className="flex items-center gap-2 ml-0.5">
             <button
               onClick={toggleMute}
-              className="w-8 h-8 lg:w-auto lg:h-auto rounded-full liquid-pill lg:bg-transparent lg:border-0 lg:shadow-none flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer"
+              className="w-8 h-8 @2xl:w-auto @2xl:h-auto rounded-full liquid-pill @2xl:bg-transparent @2xl:border-0 @2xl:shadow-none flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer"
               aria-label="Toggle mute"
             >
               {isMuted || volume === 0 ? (
-                <VolumeX className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
+                <VolumeX className="w-3.5 h-3.5 @2xl:w-4 @2xl:h-4" />
               ) : (
-                <Volume2 className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
+                <Volume2 className="w-3.5 h-3.5 @2xl:w-4 @2xl:h-4" />
               )}
             </button>
             <input
@@ -222,7 +227,7 @@ export function DesktopPlayerBar() {
               step={0.02}
               value={isMuted ? 0 : volume}
               onChange={(e) => setVolume(Number(e.target.value))}
-              className="hidden xl:block w-20 accent-sky-400 cursor-pointer h-1.5 rounded-full"
+              className="hidden @4xl:block w-20 accent-sky-400 cursor-pointer h-1.5 rounded-full"
               aria-label="Volume"
             />
           </div>

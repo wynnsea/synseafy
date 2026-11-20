@@ -4,6 +4,10 @@ import React, { Suspense, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { useThemeStore } from "@/src/application/stores/use-theme-store";
 import { usePlayerStore } from "@/src/application/stores/use-player-store";
+import { useAuthStore } from "@/src/application/stores/use-auth-store";
+import { useUserDataSync } from "@/src/application/stores/use-user-data-sync";
+import { clearPendingListen } from "@/src/application/stores/pending-listen";
+import { isSupabaseConfigured } from "@/src/infrastructure/supabase/client";
 import { AUTH_ROUTE_PATHS } from "@/src/infrastructure/config/app-config";
 import { DynamicAmbientBackground } from "@/src/presentation/components/layout/DynamicAmbientBackground";
 import { DesktopLiquidSidebar } from "@/src/presentation/components/layout/DesktopLiquidSidebar";
@@ -13,12 +17,15 @@ import { DesktopPlayerBar } from "@/src/presentation/components/player/DesktopPl
 import { MobileMiniPlayer } from "@/src/presentation/components/player/MobileMiniPlayer";
 import { NowPlayingSheet } from "@/src/presentation/components/player/NowPlayingSheet";
 import { SideDrawerPanel } from "@/src/presentation/components/player/SideDrawerPanel";
+import { DesktopRightRail } from "@/src/presentation/components/layout/DesktopRightRail";
 import { CreatePlaylistModal } from "@/src/presentation/components/music/CreatePlaylistModal";
 import { PwaRegistrar } from "@/src/presentation/components/pwa/PwaRegistrar";
 import { LiquidToast } from "@/src/presentation/components/ui/LiquidToast";
 
 function ShellChrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  // Player UI only appears once a song has been picked
+  const hasActiveTrack = usePlayerStore((s) => s.hasActiveTrack);
   const isAuthPage = AUTH_ROUTE_PATHS.includes(pathname);
 
   if (isAuthPage) {
@@ -32,7 +39,11 @@ function ShellChrome({ children }: { children: React.ReactNode }) {
 
       {/* Main Content Column: scrolls independently on desktop; hosts its own aligned player bar */}
       <div className="relative flex-1 min-w-0 flex flex-col md:h-screen">
-        <main className="flex-1 min-w-0 md:overflow-y-auto md:pb-[124px]">
+        <main
+          className={`flex-1 min-w-0 md:overflow-y-auto ${
+            hasActiveTrack ? "md:pb-[124px]" : "md:pb-8"
+          }`}
+        >
           <MobileSwipeNavigator>{children}</MobileSwipeNavigator>
         </main>
 
@@ -40,12 +51,17 @@ function ShellChrome({ children }: { children: React.ReactNode }) {
         <DesktopPlayerBar />
       </div>
 
+      {/* Wide desktop: extra content column (trending, artists, recap) */}
+      <DesktopRightRail />
+
       {/* Desktop Right Slide-Over Lyrics / Queue Glass Drawer */}
       <SideDrawerPanel />
 
       {/* Mobile Bottom Scrim + Persistent Mini Player + Floating 4-Menu Bottom Bar */}
       <div
-        className="md:hidden fixed bottom-0 inset-x-0 h-[176px] z-30 pointer-events-none bg-gradient-to-t from-[var(--bg-canvas)] via-[var(--bg-canvas)]/90 to-transparent"
+        className={`md:hidden fixed bottom-0 inset-x-0 z-30 pointer-events-none bg-gradient-to-t from-[var(--bg-canvas)] via-[var(--bg-canvas)]/90 to-transparent ${
+          hasActiveTrack ? "h-[176px]" : "h-[110px]"
+        }`}
         aria-hidden
       />
       <MobileMiniPlayer />
@@ -69,12 +85,43 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     document.documentElement.setAttribute("data-theme", theme);
   }, [theme]);
 
+  // Load / clear the signed-in user's library, history, searches and settings
+  useUserDataSync();
+
+  // Restore the Supabase session and keep the auth store in sync with it
+  useEffect(() => {
+    if (!isSupabaseConfigured) {
+      useAuthStore.setState({ status: "ready" });
+      return;
+    }
+    return useAuthStore.getState().init();
+  }, []);
+
   useEffect(() => {
     const interval = setInterval(() => {
       tick();
+      // While hidden the page may be killed at any moment: keep the stash current
+      if (document.hidden) usePlayerStore.getState().stashListen();
     }, 1000);
     return () => clearInterval(interval);
   }, [tick]);
+
+  // Don't lose a listen in progress when the tab is closed or the app is backgrounded.
+  // It's stashed while hidden and saved on the next app load (see flushPendingListen).
+  useEffect(() => {
+    const onHide = () => usePlayerStore.getState().stashListen();
+    const onVisibility = () => {
+      if (document.hidden) onHide();
+      // Back in view: the listen simply continues, so drop the stale stash
+      else clearPendingListen();
+    };
+    window.addEventListener("pagehide", onHide);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.removeEventListener("pagehide", onHide);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, []);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {

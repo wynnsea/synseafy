@@ -10,6 +10,9 @@ export function MobileMiniPlayer() {
   const { currentTrack, isPlaying, currentTime, togglePlay, nextTrack } =
     usePlayerStore();
   const setNowPlayingOpen = useUiStore((s) => s.setNowPlayingOpen);
+  const hasActiveTrack = usePlayerStore((s) => s.hasActiveTrack);
+
+  if (!hasActiveTrack) return null;
 
   const progressPct =
     currentTrack.duration > 0

@@ -51,6 +51,38 @@ export function RecapView() {
     []
   );
 
+  if (records.length === 0) {
+    return (
+      <div className="w-full max-w-[1440px] mx-auto">
+        <TopHeader
+          title="Listening Recap & Activity"
+          subtitle="Your play records, peak hours, and shareable ocean poster"
+        />
+        <div className="px-4 md:px-7 space-y-6 pb-8">
+          <button
+            onClick={() => router.back()}
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-full liquid-pill text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back
+          </button>
+          <section className="liquid-glass-strong rounded-[32px] px-6 py-10 flex flex-col items-center text-center gap-3">
+            <div className="w-14 h-14 rounded-2xl ocean-gradient-btn flex items-center justify-center">
+              <BarChart3 className="w-7 h-7 text-white" />
+            </div>
+            <h2 className="text-lg md:text-xl font-bold text-[var(--text-primary)]">
+              No listening data yet
+            </h2>
+            <p className="text-xs sm:text-sm text-[var(--text-secondary)] max-w-sm">
+              Play a few songs and your recap, peak listening hours and poster
+              will show up here.
+            </p>
+          </section>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full max-w-[1440px] mx-auto">
       <TopHeader

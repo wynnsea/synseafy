@@ -1,6 +1,12 @@
 import { create } from "zustand";
 import { Playlist } from "@/src/domain/entities/playlist";
-import { MOCK_PLAYLISTS } from "@/src/infrastructure/data/mock-playlists";
+import { Track } from "@/src/domain/entities/track";
+import { getCatalogTrack } from "@/src/infrastructure/data/catalog";
+import { userLibraryRepository } from "@/src/infrastructure/repositories/supabase-user-library-repository";
+import {
+  persist,
+  requireSignIn,
+} from "@/src/application/stores/user-data-sync";
 
 const COVER_PRESETS = [
   { from: "#0ea5e9", via: "#0284c7", to: "#082f49" },
@@ -9,16 +15,27 @@ const COVER_PRESETS = [
   { from: "#60a5fa", via: "#4f46e5", to: "#1e1b4b" },
 ];
 
+const RECENT_LIMIT = 12;
+
 interface LibraryState {
   playlists: Playlist[];
   likedTrackIds: string[];
   recentTrackIds: string[];
 
+  /** Replace everything with data loaded for the signed-in user (or clear on sign-out). */
+  hydrate: (data: {
+    playlists: Playlist[];
+    likedTrackIds: string[];
+    recentTrackIds: string[];
+  }) => void;
+  reset: () => void;
+
   toggleLike: (trackId: string) => void;
   isLiked: (trackId: string) => boolean;
   recordPlayed: (trackId: string) => void;
 
-  createPlaylist: (name: string, description: string) => Playlist;
+  /** Returns null when the user isn't signed in. */
+  createPlaylist: (name: string, description: string) => Playlist | null;
   updatePlaylist: (id: string, name: string, description: string) => void;
   deletePlaylist: (id: string) => void;
   addTrackToPlaylist: (playlistId: string, trackId: string) => void;
@@ -31,103 +48,165 @@ interface LibraryState {
   reorderPlaylistTracks: (playlistId: string, trackIds: string[]) => void;
 }
 
-export const useLibraryStore = create<LibraryState>((set, get) => ({
-  playlists: MOCK_PLAYLISTS,
-  likedTrackIds: ["trk-1", "trk-2", "trk-4"],
-  recentTrackIds: ["trk-1", "trk-2", "trk-6", "trk-3", "trk-5"],
+const EMPTY = { playlists: [], likedTrackIds: [], recentTrackIds: [] };
 
-  toggleLike: (trackId) =>
-    set((state) => ({
-      likedTrackIds: state.likedTrackIds.includes(trackId)
-        ? state.likedTrackIds.filter((id) => id !== trackId)
-        : [trackId, ...state.likedTrackIds],
-    })),
+function tracksFor(trackIds: string[]): Track[] {
+  return trackIds
+    .map((id) => getCatalogTrack(id))
+    .filter((t): t is Track => Boolean(t));
+}
 
-  isLiked: (trackId) => get().likedTrackIds.includes(trackId),
+// Drag-to-reorder fires on every move; only the final order is worth saving
+const SAVE_PLAYLIST_DELAY_MS = 600;
+const pendingPlaylistSaves = new Map<string, ReturnType<typeof setTimeout>>();
 
-  recordPlayed: (trackId) =>
-    set((state) => ({
-      recentTrackIds: [
-        trackId,
-        ...state.recentTrackIds.filter((id) => id !== trackId),
-      ].slice(0, 12),
-    })),
-
-  createPlaylist: (name, description) => {
-    const preset =
-      COVER_PRESETS[get().playlists.length % COVER_PRESETS.length];
-    const newPlaylist: Playlist = {
-      id: `pl-${Date.now()}`,
-      name: name.trim() || "Untitled Ocean Mix",
-      description:
-        description.trim() || "Personal liquid playlist in Wynnsea.",
-      coverGradient: preset,
-      trackIds: [],
-      createdAt: new Date().toISOString().slice(0, 10),
-    };
-    set((state) => ({ playlists: [newPlaylist, ...state.playlists] }));
-    return newPlaylist;
-  },
-
-  updatePlaylist: (id, name, description) =>
-    set((state) => ({
-      playlists: state.playlists.map((pl) =>
-        pl.id === id
-          ? {
-              ...pl,
-              name: name.trim() || pl.name,
-              description: description.trim(),
-            }
-          : pl
-      ),
-    })),
-
-  deletePlaylist: (id) =>
-    set((state) => ({
-      playlists: state.playlists.filter((pl) => pl.id !== id),
-    })),
-
-  addTrackToPlaylist: (playlistId, trackId) =>
-    set((state) => ({
-      playlists: state.playlists.map((pl) =>
-        pl.id === playlistId && !pl.trackIds.includes(trackId)
-          ? { ...pl, trackIds: [...pl.trackIds, trackId] }
-          : pl
-      ),
-    })),
-
-  removeTrackFromPlaylist: (playlistId, trackId) =>
-    set((state) => ({
-      playlists: state.playlists.map((pl) =>
-        pl.id === playlistId
-          ? { ...pl, trackIds: pl.trackIds.filter((t) => t !== trackId) }
-          : pl
-      ),
-    })),
-
-  moveTrackInPlaylist: (playlistId, fromIndex, toIndex) =>
-    set((state) => ({
-      playlists: state.playlists.map((pl) => {
-        if (pl.id !== playlistId) return pl;
-        if (
-          fromIndex < 0 ||
-          toIndex < 0 ||
-          fromIndex >= pl.trackIds.length ||
-          toIndex >= pl.trackIds.length
-        ) {
-          return pl;
-        }
-        const next = [...pl.trackIds];
-        const [moved] = next.splice(fromIndex, 1);
-        next.splice(toIndex, 0, moved);
-        return { ...pl, trackIds: next };
-      }),
-    })),
-
-  reorderPlaylistTracks: (playlistId, trackIds) =>
+export const useLibraryStore = create<LibraryState>((set, get) => {
+  /** Apply a new track list to one playlist locally, then save it (debounced). */
+  const setTrackIds = (playlistId: string, trackIds: string[]) => {
+    const playlist = get().playlists.find((pl) => pl.id === playlistId);
+    if (!playlist) return;
     set((state) => ({
       playlists: state.playlists.map((pl) =>
         pl.id === playlistId ? { ...pl, trackIds } : pl
       ),
-    })),
-}));
+    }));
+
+    clearTimeout(pendingPlaylistSaves.get(playlistId));
+    pendingPlaylistSaves.set(
+      playlistId,
+      setTimeout(() => {
+        pendingPlaylistSaves.delete(playlistId);
+        const latest = get().playlists.find((pl) => pl.id === playlistId);
+        if (!latest) return; // deleted meanwhile
+        persist(
+          userLibraryRepository.setPlaylistTracks(
+            playlistId,
+            tracksFor(latest.trackIds)
+          ),
+          "Couldn't update the playlist. Please try again."
+        );
+      }, SAVE_PLAYLIST_DELAY_MS)
+    );
+  };
+
+  return {
+    ...EMPTY,
+
+    hydrate: (data) => set(data),
+    reset: () => {
+      pendingPlaylistSaves.forEach((t) => clearTimeout(t));
+      pendingPlaylistSaves.clear();
+      set(EMPTY);
+    },
+
+    toggleLike: (trackId) => {
+      if (!requireSignIn("Sign in to save songs you like")) return;
+      const track = getCatalogTrack(trackId);
+      if (!track) return;
+
+      const wasLiked = get().likedTrackIds.includes(trackId);
+      set((state) => ({
+        likedTrackIds: wasLiked
+          ? state.likedTrackIds.filter((id) => id !== trackId)
+          : [trackId, ...state.likedTrackIds],
+      }));
+      persist(
+        wasLiked
+          ? userLibraryRepository.unlike(track)
+          : userLibraryRepository.like(track),
+        "Couldn't update your liked songs. Please try again."
+      );
+    },
+
+    isLiked: (trackId) => get().likedTrackIds.includes(trackId),
+
+    // Local only: the play itself is saved to history by the activity store
+    recordPlayed: (trackId) =>
+      set((state) => ({
+        recentTrackIds: [
+          trackId,
+          ...state.recentTrackIds.filter((id) => id !== trackId),
+        ].slice(0, RECENT_LIMIT),
+      })),
+
+    createPlaylist: (name, description) => {
+      if (!requireSignIn("Sign in to create playlists")) return null;
+      const preset =
+        COVER_PRESETS[get().playlists.length % COVER_PRESETS.length];
+      const newPlaylist: Playlist = {
+        // Generated here so the UI can use it before the server answers
+        id: crypto.randomUUID(),
+        name: name.trim() || "Untitled Ocean Mix",
+        description:
+          description.trim() || "Personal liquid playlist in Wynnsea.",
+        coverGradient: preset,
+        trackIds: [],
+        createdAt: new Date().toISOString().slice(0, 10),
+      };
+      set((state) => ({ playlists: [newPlaylist, ...state.playlists] }));
+      persist(
+        userLibraryRepository.createPlaylist(newPlaylist),
+        "Couldn't create the playlist. Please try again."
+      );
+      return newPlaylist;
+    },
+
+    updatePlaylist: (id, name, description) => {
+      const current = get().playlists.find((pl) => pl.id === id);
+      if (!current) return;
+      const nextName = name.trim() || current.name;
+      const nextDescription = description.trim();
+      set((state) => ({
+        playlists: state.playlists.map((pl) =>
+          pl.id === id
+            ? { ...pl, name: nextName, description: nextDescription }
+            : pl
+        ),
+      }));
+      persist(
+        userLibraryRepository.updatePlaylist(id, nextName, nextDescription),
+        "Couldn't save playlist details. Please try again."
+      );
+    },
+
+    deletePlaylist: (id) => {
+      set((state) => ({
+        playlists: state.playlists.filter((pl) => pl.id !== id),
+      }));
+      persist(
+        userLibraryRepository.deletePlaylist(id),
+        "Couldn't delete the playlist. Please try again."
+      );
+    },
+
+    addTrackToPlaylist: (playlistId, trackId) => {
+      if (!requireSignIn("Sign in to build playlists")) return;
+      const playlist = get().playlists.find((pl) => pl.id === playlistId);
+      if (!playlist || playlist.trackIds.includes(trackId)) return;
+      setTrackIds(playlistId, [...playlist.trackIds, trackId]);
+    },
+
+    removeTrackFromPlaylist: (playlistId, trackId) => {
+      const playlist = get().playlists.find((pl) => pl.id === playlistId);
+      if (!playlist) return;
+      setTrackIds(
+        playlistId,
+        playlist.trackIds.filter((t) => t !== trackId)
+      );
+    },
+
+    moveTrackInPlaylist: (playlistId, fromIndex, toIndex) => {
+      const playlist = get().playlists.find((pl) => pl.id === playlistId);
+      if (!playlist) return;
+      const n = playlist.trackIds.length;
+      if (fromIndex < 0 || toIndex < 0 || fromIndex >= n || toIndex >= n) return;
+      const next = [...playlist.trackIds];
+      const [moved] = next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, moved);
+      setTrackIds(playlistId, next);
+    },
+
+    reorderPlaylistTracks: (playlistId, trackIds) =>
+      setTrackIds(playlistId, trackIds),
+  };
+});

@@ -54,7 +54,7 @@ export function LikedView() {
                 {tab === "liked" ? "Liked Songs" : "Recently Played"}
               </h2>
               <p className="text-xs sm:text-sm text-[var(--text-secondary)]">
-                {activeList.length} tracks saved locally
+                {activeList.length} {activeList.length === 1 ? "track" : "tracks"}
               </p>
             </div>
           </div>

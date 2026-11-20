@@ -16,10 +16,11 @@ export function PopularCarouselCard({
   track,
   queueContext,
 }: PopularCarouselCardProps) {
-  const { currentTrack, isPlaying, playTrack, togglePlay } = usePlayerStore();
+  const { hasActiveTrack, currentTrack, isPlaying, playTrack, togglePlay } =
+    usePlayerStore();
   const { likedTrackIds, toggleLike, recordPlayed } = useLibraryStore();
 
-  const isCurrent = currentTrack.id === track.id;
+  const isCurrent = hasActiveTrack && currentTrack.id === track.id;
   const liked = likedTrackIds.includes(track.id);
 
   const handlePlay = () => {

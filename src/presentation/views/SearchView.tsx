@@ -59,7 +59,9 @@ const BROWSE_TILES = [
 ];
 
 export function SearchView() {
-  const [query, setQuery] = useState("");
+  // Shared with the header search box, so a query typed there lands here
+  const query = useSearchStore((s) => s.query);
+  const setQuery = useSearchStore((s) => s.setQuery);
   const [selectedGenre, setSelectedGenre] = useState("All");
   const [genreMenuOpen, setGenreMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<SearchTab>("all");
@@ -126,12 +128,18 @@ export function SearchView() {
     return playlists.filter(
       (pl) =>
         pl.name.toLowerCase().includes(q) ||
-        pl.description.toLowerCase().includes(q)
+        pl.description.toLowerCase().includes(q),
     );
   }, [playlists, query]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (query.trim()) addRecentSearch(query.trim());
+  };
+
+  // Like Spotify: a search counts as "recent" once you pick something from its
+  // results (play a song, open an artist/album/playlist), not just on Enter.
+  const rememberQuery = () => {
     if (query.trim()) addRecentSearch(query.trim());
   };
 
@@ -274,7 +282,10 @@ export function SearchView() {
               </div>
 
               {selectedGenre !== "All" && (
-                <div ref={genreMenuRef} className="relative flex items-center gap-2">
+                <div
+                  ref={genreMenuRef}
+                  className="relative flex items-center gap-2"
+                >
                   <span className="text-xs text-[var(--text-muted)]">
                     Genre:
                   </span>
@@ -297,7 +308,10 @@ export function SearchView() {
                         initial={{ opacity: 0, y: -6, scale: 0.96 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: -6, scale: 0.96 }}
-                        transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
+                        transition={{
+                          duration: 0.16,
+                          ease: [0.22, 1, 0.36, 1],
+                        }}
                         className="absolute right-0 top-10 w-44 liquid-glass-dock rounded-2xl p-1.5 z-40 shadow-2xl space-y-0.5"
                       >
                         {GENRES.map((g) => {
@@ -335,112 +349,115 @@ export function SearchView() {
               </p>
             )}
 
-            {/* Songs Section */}
-            {(activeTab === "all" || activeTab === "songs") && (
-              <section className="space-y-3">
-                <h3 className="text-base font-bold text-[var(--text-primary)]">
-                  Songs
-                </h3>
-                {results.length > 0 ? (
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                    {results.map((track) => (
-                      <TrackPillRow
-                        key={track.id}
-                        track={track}
-                        queueContext={results}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-xs text-[var(--text-muted)]">
-                    No songs matched your search.
-                  </p>
-                )}
-              </section>
-            )}
-
-            {/* Artists Section */}
-            {(activeTab === "all" || activeTab === "artists") &&
-              matchingArtists.length > 0 && (
+            {/* Results: any click/tap in here remembers the query */}
+            <div onClickCapture={rememberQuery} className="space-y-6">
+              {/* Songs Section */}
+              {(activeTab === "all" || activeTab === "songs") && (
                 <section className="space-y-3">
                   <h3 className="text-base font-bold text-[var(--text-primary)]">
-                    Artists
+                    Songs
                   </h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3.5">
-                    {matchingArtists.map((track) => (
-                      <Link
-                        key={track.artist}
-                        href={`/artist/${toSlug(track.artist)}`}
-                        className="group liquid-glass rounded-[26px] p-4 flex flex-col items-center text-center gap-3 hover:-translate-y-1 transition-transform"
-                      >
-                        <TrackArtwork
+                  {results.length > 0 ? (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                      {results.map((track) => (
+                        <TrackPillRow
+                          key={track.id}
                           track={track}
-                          className="w-20 h-20 ring-2 ring-white/25 shadow-lg"
-                          rounded="full"
+                          queueContext={results}
                         />
-                        <div className="min-w-0 w-full">
-                          <p className="text-sm font-semibold text-[var(--text-primary)] truncate group-hover:text-[var(--accent-cyan)]">
-                            {track.artist}
-                          </p>
-                          <p className="text-[11px] text-[var(--text-muted)]">
-                            Artist
-                          </p>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-[var(--text-muted)]">
+                      No songs matched your search.
+                    </p>
+                  )}
                 </section>
               )}
 
-            {/* Albums Section */}
-            {(activeTab === "all" || activeTab === "albums") &&
-              matchingAlbums.length > 0 && (
-                <section className="space-y-3">
-                  <h3 className="text-base font-bold text-[var(--text-primary)]">
-                    Albums
-                  </h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3.5">
-                    {matchingAlbums.map((track) => (
-                      <Link
-                        key={track.album}
-                        href={`/album/${toSlug(track.album)}`}
-                        className="group liquid-glass rounded-[26px] p-3.5 space-y-2.5 hover:-translate-y-1 transition-transform"
-                      >
-                        <div className="aspect-square w-full overflow-hidden rounded-2xl">
+              {/* Artists Section */}
+              {(activeTab === "all" || activeTab === "artists") &&
+                matchingArtists.length > 0 && (
+                  <section className="space-y-3">
+                    <h3 className="text-base font-bold text-[var(--text-primary)]">
+                      Artists
+                    </h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3.5">
+                      {matchingArtists.map((track) => (
+                        <Link
+                          key={track.artist}
+                          href={`/artist/${toSlug(track.artist)}`}
+                          className="group liquid-glass rounded-[26px] p-4 flex flex-col items-center text-center gap-3 hover:-translate-y-1 transition-transform"
+                        >
                           <TrackArtwork
                             track={track}
-                            className="w-full h-full"
-                            rounded="2xl"
+                            className="w-20 h-20 ring-2 ring-white/25 shadow-lg"
+                            rounded="full"
                           />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-sm font-semibold text-[var(--text-primary)] truncate group-hover:text-[var(--accent-cyan)]">
-                            {track.album}
-                          </p>
-                          <p className="text-[11px] text-[var(--text-secondary)] truncate">
-                            {track.artist}
-                          </p>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                </section>
-              )}
+                          <div className="min-w-0 w-full">
+                            <p className="text-sm font-semibold text-[var(--text-primary)] truncate group-hover:text-[var(--accent-cyan)]">
+                              {track.artist}
+                            </p>
+                            <p className="text-[11px] text-[var(--text-muted)]">
+                              Artist
+                            </p>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  </section>
+                )}
 
-            {/* Playlists Section */}
-            {(activeTab === "all" || activeTab === "playlists") &&
-              matchingPlaylists.length > 0 && (
-                <section className="space-y-3">
-                  <h3 className="text-base font-bold text-[var(--text-primary)]">
-                    Playlists
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {matchingPlaylists.map((pl) => (
-                      <PlaylistCard key={pl.id} playlist={pl} />
-                    ))}
-                  </div>
-                </section>
-              )}
+              {/* Albums Section */}
+              {(activeTab === "all" || activeTab === "albums") &&
+                matchingAlbums.length > 0 && (
+                  <section className="space-y-3">
+                    <h3 className="text-base font-bold text-[var(--text-primary)]">
+                      Albums
+                    </h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3.5">
+                      {matchingAlbums.map((track) => (
+                        <Link
+                          key={track.album}
+                          href={`/album/${toSlug(track.album)}`}
+                          className="group liquid-glass rounded-[26px] p-3.5 space-y-2.5 hover:-translate-y-1 transition-transform"
+                        >
+                          <div className="aspect-square w-full overflow-hidden rounded-2xl">
+                            <TrackArtwork
+                              track={track}
+                              className="w-full h-full"
+                              rounded="2xl"
+                            />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-[var(--text-primary)] truncate group-hover:text-[var(--accent-cyan)]">
+                              {track.album}
+                            </p>
+                            <p className="text-[11px] text-[var(--text-secondary)] truncate">
+                              {track.artist}
+                            </p>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  </section>
+                )}
+
+              {/* Playlists Section */}
+              {(activeTab === "all" || activeTab === "playlists") &&
+                matchingPlaylists.length > 0 && (
+                  <section className="space-y-3">
+                    <h3 className="text-base font-bold text-[var(--text-primary)]">
+                      Playlists
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {matchingPlaylists.map((pl) => (
+                        <PlaylistCard key={pl.id} playlist={pl} />
+                      ))}
+                    </div>
+                  </section>
+                )}
+            </div>
           </div>
         )}
       </div>

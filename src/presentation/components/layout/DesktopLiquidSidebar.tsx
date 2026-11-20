@@ -9,7 +9,7 @@ import {
   Home,
   Search,
   Library,
-  User,
+  Heart,
   Plus,
   PanelLeftClose,
   PanelLeftOpen,
@@ -21,7 +21,7 @@ const NAV_ITEMS = [
   { href: "/", label: "Home", icon: Home },
   { href: "/search", label: "Search", icon: Search },
   { href: "/library", label: "Library", icon: Library },
-  { href: "/profile", label: "Profile", icon: User },
+  { href: "/liked", label: "Liked Songs", icon: Heart },
 ];
 
 export function DesktopLiquidSidebar() {

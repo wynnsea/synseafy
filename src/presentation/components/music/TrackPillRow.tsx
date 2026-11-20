@@ -24,11 +24,12 @@ export function TrackPillRow({
   queueContext,
   extraAction,
 }: TrackPillRowProps) {
-  const { currentTrack, isPlaying, playTrack, togglePlay } = usePlayerStore();
+  const { hasActiveTrack, currentTrack, isPlaying, playTrack, togglePlay } =
+    usePlayerStore();
   const { likedTrackIds, toggleLike, recordPlayed } = useLibraryStore();
   const showToast = useToastStore((s) => s.showToast);
 
-  const isCurrent = currentTrack.id === track.id;
+  const isCurrent = hasActiveTrack && currentTrack.id === track.id;
   const liked = likedTrackIds.includes(track.id);
 
   const handlePlay = () => {

@@ -15,6 +15,7 @@ export const APP_ROUTES = {
 export const AUTH_ROUTE_PATHS: readonly string[] = [
   APP_ROUTES.login,
   APP_ROUTES.register,
+  APP_ROUTES.authCallback,
 ];
 
 export const appConfig = {
