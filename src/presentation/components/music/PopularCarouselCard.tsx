@@ -59,10 +59,12 @@ export function PopularCarouselCard({
             </div>
           </div>
 
-          {/* Genre pill badge */}
-          <span className="absolute top-2.5 left-2.5 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-black/35 text-white backdrop-blur-md border border-white/15">
-            {track.genre}
-          </span>
+          {/* Genre pill badge (only songs that have one) */}
+          {track.genre && (
+            <span className="absolute top-2.5 left-2.5 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-black/35 text-white backdrop-blur-md border border-white/15">
+              {track.genre}
+            </span>
+          )}
         </div>
       </div>
 
@@ -82,7 +84,7 @@ export function PopularCarouselCard({
             {track.title}
           </p>
           <p className="text-[11px] text-[var(--text-secondary)] truncate mt-0.5">
-            {track.artist} · {track.songCountLabel ?? track.playCount}
+            {[track.artist, track.songCountLabel ?? track.playCount].filter(Boolean).join(" · ")}
           </p>
         </button>
 

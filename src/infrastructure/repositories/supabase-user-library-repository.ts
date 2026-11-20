@@ -6,7 +6,8 @@ import {
   UserLibrarySnapshot,
   UserSettings,
 } from "@/src/domain/repositories/user-library-repository";
-import { findTrackByVideoId } from "@/src/infrastructure/data/catalog";
+import { findTrackByVideoId, registerTracks } from "@/src/infrastructure/data/catalog";
+import { buildTrack } from "@/src/infrastructure/data/track-factory";
 import { getSupabase } from "@/src/infrastructure/supabase/client";
 
 const HISTORY_LIMIT = 500;
@@ -23,9 +24,42 @@ function fail(context: string, error: { message: string } | null): void {
   if (error) throw new Error(`${context}: ${error.message}`);
 }
 
-/** Map catalog ids back from stored video ids, dropping songs the catalog doesn't know. */
-function toTrackId(videoId: string): string | undefined {
-  return findTrackByVideoId(videoId)?.id;
+/** Columns of the cached song row embedded with likes, playlists and history. */
+const TRACK_COLUMNS = "video_id, title, artist, album, duration_seconds, thumbnail_url";
+
+interface TrackRow {
+  video_id: string;
+  title: string;
+  artist: string;
+  album: string;
+  duration_seconds: number | null;
+  thumbnail_url: string | null;
+}
+
+/** A many-to-one embed is a single object, but untyped clients may type it as an array. */
+function oneRow(value: unknown): TrackRow | null {
+  if (Array.isArray(value)) return (value[0] as TrackRow | undefined) ?? null;
+  return (value as TrackRow | null) ?? null;
+}
+
+/**
+ * Catalog id for a stored song. Uses the in-memory catalog when it already has
+ * the song, otherwise rebuilds it from the cached `tracks` row (no YouTube call).
+ */
+function toTrackId(videoId: string, cached?: TrackRow | null): string | undefined {
+  const known = findTrackByVideoId(videoId);
+  if (known) return known.id;
+  if (!cached) return undefined;
+  const track = buildTrack({
+    videoId: cached.video_id,
+    title: cached.title,
+    artists: cached.artist ? cached.artist.split(", ") : [],
+    album: cached.album,
+    durationSeconds: cached.duration_seconds,
+    thumbnailUrl: cached.thumbnail_url,
+  });
+  registerTracks([track]);
+  return track.id;
 }
 
 /** PostgREST `in` list with each value quoted, e.g. ("a","b"). */
@@ -45,7 +79,8 @@ async function ensureTracks(tracks: Track[]): Promise<void> {
     artist: t.artist,
     album: t.album,
     duration_seconds: t.duration,
-    genre: t.genre,
+    thumbnail_url: t.thumbnailUrl ?? null,
+    genre: t.genre || null,
   }));
   const { error } = await getSupabase()
     .from("tracks")
@@ -61,16 +96,18 @@ export class SupabaseUserLibraryRepository implements IUserLibraryRepository {
       await Promise.all([
         db
           .from("playlists")
-          .select("id, name, description, cover_gradient, created_at, playlist_tracks(video_id, position)")
+          .select(
+            `id, name, description, cover_gradient, cover_url, created_at, playlist_tracks(video_id, position, tracks(${TRACK_COLUMNS}))`
+          )
           .order("created_at", { ascending: false })
           .order("position", { referencedTable: "playlist_tracks", ascending: true }),
         db
           .from("liked_tracks")
-          .select("video_id")
+          .select(`video_id, tracks(${TRACK_COLUMNS})`)
           .order("liked_at", { ascending: false }),
         db
           .from("play_history")
-          .select("id, video_id, played_at, seconds_listened")
+          .select(`id, video_id, played_at, seconds_listened, tracks(${TRACK_COLUMNS})`)
           .order("played_at", { ascending: false })
           .limit(HISTORY_LIMIT),
         db
@@ -96,18 +133,19 @@ export class SupabaseUserLibraryRepository implements IUserLibraryRepository {
       name: row.name,
       description: row.description,
       coverGradient: row.cover_gradient,
+      coverUrl: row.cover_url ?? undefined,
       trackIds: (row.playlist_tracks ?? [])
-        .map((pt: { video_id: string }) => toTrackId(pt.video_id))
+        .map((pt: { video_id: string; tracks: unknown }) => toTrackId(pt.video_id, oneRow(pt.tracks)))
         .filter((id: string | undefined): id is string => Boolean(id)),
       createdAt: String(row.created_at).slice(0, 10),
     }));
 
     const likedTrackIds = (likesRes.data ?? [])
-      .map((row) => toTrackId(row.video_id))
+      .map((row) => toTrackId(row.video_id, oneRow(row.tracks)))
       .filter((id): id is string => Boolean(id));
 
     const history: PlayRecord[] = (historyRes.data ?? []).flatMap((row) => {
-      const trackId = toTrackId(row.video_id);
+      const trackId = toTrackId(row.video_id, oneRow(row.tracks));
       return trackId
         ? [
             {
@@ -171,6 +209,14 @@ export class SupabaseUserLibraryRepository implements IUserLibraryRepository {
       .update({ name, description })
       .eq("id", id);
     fail("Updating playlist", error);
+  }
+
+  async updatePlaylistCover(id: string, coverUrl: string | null): Promise<void> {
+    const { error } = await getSupabase()
+      .from("playlists")
+      .update({ cover_url: coverUrl })
+      .eq("id", id);
+    fail("Updating playlist cover", error);
   }
 
   async deletePlaylist(id: string): Promise<void> {

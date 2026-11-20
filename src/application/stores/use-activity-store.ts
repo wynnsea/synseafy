@@ -1,7 +1,8 @@
 import { create } from "zustand";
 import { Track } from "@/src/domain/entities/track";
 import type { PlayRecord } from "@/src/domain/repositories/user-library-repository";
-import { getCatalogTrack } from "@/src/infrastructure/data/catalog";
+import { getCatalogTrack, registerTracks } from "@/src/infrastructure/data/catalog";
+import { buildTrack } from "@/src/infrastructure/data/track-factory";
 import { userLibraryRepository } from "@/src/infrastructure/repositories/supabase-user-library-repository";
 import { isSignedIn, persist } from "@/src/application/stores/user-data-sync";
 import { takePendingListen } from "@/src/application/stores/pending-listen";
@@ -65,7 +66,11 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
   flushPendingListen: () => {
     const pending = takePendingListen();
     if (!pending || !isSignedIn()) return;
-    const track = getCatalogTrack(pending.trackId);
+    let track = getCatalogTrack(pending.trackId);
+    if (!track && pending.track?.videoId) {
+      track = buildTrack(pending.track);
+      registerTracks([track]);
+    }
     if (track) get().logPlay(track, pending.secondsListened, pending.playedAt);
   },
 

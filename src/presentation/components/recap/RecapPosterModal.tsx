@@ -238,7 +238,9 @@ export function RecapPosterModal({
       ctx.fillStyle = theme.textSub;
       ctx.font = "600 22px system-ui, -apple-system, sans-serif";
       ctx.fillText(
-        `Top Artist: ${topArtist}  ·  Top Genre: ${recap.topGenre}`,
+        recap.topGenre
+          ? `Top Artist: ${topArtist}  ·  Top Genre: ${recap.topGenre}`
+          : `Top Artist: ${topArtist}`,
         pad,
         footY
       );
@@ -479,7 +481,8 @@ export function RecapPosterModal({
               {/* Footer */}
               <div className="relative z-10 flex items-center justify-between pt-3 text-[10px]">
                 <span className="opacity-80 truncate">
-                  Top Artist: <strong>{topArtist}</strong> · {recap.topGenre}
+                  Top Artist: <strong>{topArtist}</strong>
+                  {recap.topGenre ? ` · ${recap.topGenre}` : ""}
                 </span>
                 <span
                   className="font-bold shrink-0 ml-2"

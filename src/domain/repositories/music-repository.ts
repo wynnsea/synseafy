@@ -1,10 +1,11 @@
 import { Track } from "@/src/domain/entities/track";
 
 export interface IMusicRepository {
-  getAllTracks(): Promise<Track[]>;
-  getTrackById(id: string): Promise<Track | undefined>;
-  searchTracks(query: string, genre?: string): Promise<Track[]>;
-  getPopularTracks(): Promise<Track[]>;
-  getTrendingTracks(): Promise<Track[]>;
+  /**
+   * Songs matching `query`, narrowed by a mood/genre chip ("All" = no filter).
+   * With an empty query and "All", returns a general feed instead.
+   */
+  searchTracks(query: string, genre?: string, signal?: AbortSignal): Promise<Track[]>;
+  /** Mood / genre chips shown in the UI, starting with "All". */
   getGenres(): string[];
 }

@@ -16,6 +16,7 @@ import {
   ListMusic,
   Maximize2,
 } from "lucide-react";
+import { motion } from "framer-motion";
 import { usePlayerStore } from "@/src/application/stores/use-player-store";
 import { useLibraryStore } from "@/src/application/stores/use-library-store";
 import { useUiStore } from "@/src/application/stores/use-ui-store";
@@ -57,9 +58,21 @@ export function DesktopPlayerBar() {
   // xl right rail makes this column narrower than the viewport suggests.
   return (
     <div className="@container hidden md:block absolute bottom-0 inset-x-0 px-3 @2xl:px-7 pb-4 pt-8 z-40 pointer-events-none bg-gradient-to-t from-[var(--bg-canvas)] via-[var(--bg-canvas)]/92 to-transparent">
-      <div className="pointer-events-auto max-w-[1380px] mx-auto liquid-glass-dock rounded-full px-3.5 @2xl:px-6 py-2.5 @2xl:py-3 flex items-center justify-between gap-3 @2xl:gap-5">
-        {/* Left: Track Info (fluid on tablet, generous on desktop) */}
-        <div className="flex items-center gap-2.5 @2xl:gap-3 min-w-0 w-[170px] @2xl:w-[220px] @4xl:w-[260px] shrink-0">
+      {/* Slides up the first time a song is picked */}
+      <motion.div
+        initial={{ y: 72, opacity: 0, scale: 0.96 }}
+        animate={{ y: 0, opacity: 1, scale: 1 }}
+        transition={{ type: "spring", stiffness: 260, damping: 26 }}
+        className="pointer-events-auto max-w-[1380px] mx-auto liquid-glass-dock rounded-full px-3.5 @2xl:px-6 py-2.5 @2xl:py-3 flex items-center justify-between gap-3 @2xl:gap-5"
+      >
+        {/* Left: Track Info (fluid on tablet, generous on desktop); re-animates per song */}
+        <motion.div
+          key={currentTrack.id}
+          initial={{ opacity: 0, x: -12 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+          className="flex items-center gap-2.5 @2xl:gap-3 min-w-0 w-[170px] @2xl:w-[220px] @4xl:w-[260px] shrink-0"
+        >
           <button
             onClick={() => setNowPlayingOpen(true)}
             className="relative group cursor-pointer shrink-0"
@@ -87,19 +100,7 @@ export function DesktopPlayerBar() {
               {currentTrack.artist}
             </p>
           </div>
-
-          <button
-            onClick={() => toggleLike(currentTrack.id)}
-            aria-label="Like track"
-            className={`hidden @4xl:flex w-9 h-9 rounded-full liquid-pill items-center justify-center transition-all cursor-pointer shrink-0 ${
-              liked
-                ? "text-sky-400 scale-105"
-                : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-            }`}
-          >
-            <Heart className={`w-4 h-4 ${liked ? "fill-current" : ""}`} />
-          </button>
-        </div>
+        </motion.div>
 
         {/* Center: Controls + Interactive Waveform (fluid flex-1 min-w-0) */}
         <div className="flex-1 min-w-0 max-w-[520px] flex flex-col items-center gap-1 @2xl:gap-1.5">
@@ -184,6 +185,25 @@ export function DesktopPlayerBar() {
 
         {/* Right: Lyrics, Queue & Volume (compact on tablet, full slider on xl) */}
         <div className="flex items-center justify-end gap-1.5 @2xl:gap-2.5 shrink-0">
+          {/* Like · Lyrics · Queue as one row of matching buttons */}
+          <button
+            onClick={() => toggleLike(currentTrack.id)}
+            title={liked ? "Remove from Liked Songs" : "Save to Liked Songs"}
+            aria-label={
+              liked ? "Remove from Liked Songs" : "Save to Liked Songs"
+            }
+            aria-pressed={liked}
+            className={`w-8 h-8 @2xl:w-9 @2xl:h-9 rounded-full liquid-pill flex items-center justify-center transition-all cursor-pointer ${
+              liked
+                ? "text-sky-400"
+                : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+            }`}
+          >
+            <Heart
+              className={`w-3.5 h-3.5 @2xl:w-4 @2xl:h-4 ${liked ? "fill-current" : ""}`}
+            />
+          </button>
+
           <button
             onClick={() => toggleDrawer("lyrics")}
             title="Lyrics"
@@ -232,7 +252,7 @@ export function DesktopPlayerBar() {
             />
           </div>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

@@ -11,18 +11,17 @@ import {
 } from "@/src/application/stores/use-tab-pager-store";
 
 /**
- * iOS 26-style Liquid Glass tab bar: a capsule with stacked icon + label
- * tabs, plus Search as its own circular glass button on the right.
+ * iOS 26-style Liquid Glass tab bar: one capsule with stacked icon + label tabs.
  * The active tab is marked by a clear glass "lens" that slides between items.
- * Highlight state is shared with MobileSwipeNavigator so they never disagree.
+ * Order matches the swipe pager; highlight state is shared with
+ * MobileSwipeNavigator so they never disagree.
  */
 const CAPSULE_TABS: { href: string; label: string; icon: LucideIcon }[] = [
   { href: "/", label: "Home", icon: Home },
+  { href: "/search", label: "Search", icon: Search },
   { href: "/library", label: "Library", icon: Library },
   { href: "/profile", label: "Profile", icon: User },
 ];
-
-const SEARCH_HREF = "/search";
 
 const LENS_SPRING = { type: "spring", stiffness: 460, damping: 36 } as const;
 
@@ -60,11 +59,9 @@ export function MobileBottomNav() {
     }
   };
 
-  const searchActive = isTabActive(SEARCH_HREF, activePath);
-
   return (
     <div className="md:hidden fixed bottom-4 inset-x-4 z-40 flex justify-center pointer-events-none">
-      <div className="w-full max-w-[390px] flex items-center gap-2.5">
+      <div className="w-full max-w-[390px] flex items-center">
         <nav
           ref={capsuleRef}
           aria-label="Mobile Navigation"
@@ -119,33 +116,6 @@ export function MobileBottomNav() {
           })}
         </nav>
 
-        {/* Detached circular Search button */}
-        <Link
-          href={SEARCH_HREF}
-          onClick={(e) => {
-            e.preventDefault();
-            goTo(SEARCH_HREF);
-          }}
-          aria-label="Search"
-          aria-current={searchActive ? "page" : undefined}
-          className={`pointer-events-auto relative shrink-0 size-16 rounded-full liquid-glass-bar flex items-center justify-center transition-colors duration-200 ${searchActive
-            ? "text-[var(--tab-active)]"
-            : "text-[var(--text-primary)] active:opacity-60"
-            }`}
-        >
-          {searchActive && (
-            <motion.span
-              layoutId="mobile-liquid-lens"
-              transition={LENS_SPRING}
-              className="absolute inset-1 rounded-full liquid-lens"
-              aria-hidden
-            />
-          )}
-          <Search
-            className="relative z-10 w-6 h-6"
-            strokeWidth={searchActive ? 2.4 : 2}
-          />
-        </Link>
       </div>
     </div>
   );

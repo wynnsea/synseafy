@@ -38,7 +38,7 @@ export function HeaderSearch() {
         setQuery(draft.trim());
         router.push(APP_ROUTES.search);
       }}
-      className="relative w-full max-w-[480px]"
+      className="relative w-full max-w-[360px]"
     >
       <Search className="w-4 h-4 text-[var(--accent-cyan)] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
       <input

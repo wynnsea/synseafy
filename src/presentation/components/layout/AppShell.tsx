@@ -6,8 +6,11 @@ import { useThemeStore } from "@/src/application/stores/use-theme-store";
 import { usePlayerStore } from "@/src/application/stores/use-player-store";
 import { useAuthStore } from "@/src/application/stores/use-auth-store";
 import { useUserDataSync } from "@/src/application/stores/use-user-data-sync";
+import { useCatalogStore } from "@/src/application/stores/use-catalog-store";
 import { clearPendingListen } from "@/src/application/stores/pending-listen";
 import { isSupabaseConfigured } from "@/src/infrastructure/supabase/client";
+import { appConfig } from "@/src/infrastructure/config/app-config";
+import { YouTubeEngine } from "@/src/presentation/components/player/YouTubeEngine";
 import { AUTH_ROUTE_PATHS } from "@/src/infrastructure/config/app-config";
 import { DynamicAmbientBackground } from "@/src/presentation/components/layout/DynamicAmbientBackground";
 import { DesktopLiquidSidebar } from "@/src/presentation/components/layout/DesktopLiquidSidebar";
@@ -88,6 +91,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // Load / clear the signed-in user's library, history, searches and settings
   useUserDataSync();
 
+  // Home feed (trending, quick picks, artists) used across pages
+  const loadHome = useCatalogStore((s) => s.loadHome);
+  useEffect(() => {
+    loadHome();
+  }, [loadHome]);
+
   // Restore the Supabase session and keep the auth store in sync with it
   useEffect(() => {
     if (!isSupabaseConfigured) {
@@ -99,7 +108,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      tick();
+      // Mock songs have no audio: simulate playback. Real songs are timed by YouTubeEngine.
+      if (appConfig.useMockData) tick();
       // While hidden the page may be killed at any moment: keep the stash current
       if (document.hidden) usePlayerStore.getState().stashListen();
     }, 1000);
@@ -146,6 +156,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Global Liquid Glass Toast Notifications */}
       <LiquidToast />
+
+      {/* The one YouTube player behind real playback (not used with mock data) */}
+      {!appConfig.useMockData && <YouTubeEngine />}
 
       {/* PWA Service Worker & Install Prompt Handler */}
       <PwaRegistrar />

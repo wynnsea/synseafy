@@ -2,10 +2,12 @@
 
 import React, { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { X, Pencil } from "lucide-react";
+import { X, Pencil, ImagePlus, Loader2, Trash2 } from "lucide-react";
 import { Playlist } from "@/src/domain/entities/playlist";
 import { useLibraryStore } from "@/src/application/stores/use-library-store";
 import { useToastStore } from "@/src/application/stores/use-toast-store";
+import { CoverImage } from "@/src/presentation/components/ui/CoverImage";
+import { ImagePickerButton } from "@/src/presentation/components/ui/ImagePickerButton";
 
 interface EditPlaylistModalProps {
   playlist: Playlist;
@@ -19,7 +21,28 @@ export function EditPlaylistModal({
   onClose,
 }: EditPlaylistModalProps) {
   const updatePlaylist = useLibraryStore((s) => s.updatePlaylist);
+  const setPlaylistCover = useLibraryStore((s) => s.setPlaylistCover);
+  const removePlaylistCover = useLibraryStore((s) => s.removePlaylistCover);
+  // Live copy, so a new cover shows as soon as it's uploaded
+  const live =
+    useLibraryStore((s) => s.playlists.find((p) => p.id === playlist.id)) ??
+    playlist;
   const showToast = useToastStore((s) => s.showToast);
+  const [coverBusy, setCoverBusy] = useState(false);
+
+  const changeCover = async (file: File) => {
+    setCoverBusy(true);
+    const error = await setPlaylistCover(playlist.id, file);
+    setCoverBusy(false);
+    showToast(error ?? "Cover updated");
+  };
+
+  const clearCover = async () => {
+    setCoverBusy(true);
+    const error = await removePlaylistCover(playlist.id);
+    setCoverBusy(false);
+    showToast(error ?? "Cover removed");
+  };
 
   const [name, setName] = useState(playlist.name);
   const [description, setDescription] = useState(playlist.description);
@@ -59,7 +82,7 @@ export function EditPlaylistModal({
                     Edit Playlist
                   </h3>
                   <p className="text-xs text-[var(--text-muted)]">
-                    Update title or description
+                    Update cover, title or description
                   </p>
                 </div>
               </div>
@@ -69,6 +92,49 @@ export function EditPlaylistModal({
               >
                 <X className="w-4 h-4" />
               </button>
+            </div>
+
+            {/* Cover image (uploads right away, independent of Save) */}
+            <div className="flex items-center gap-4">
+              <div
+                className="relative overflow-hidden w-20 h-20 rounded-[22px] shrink-0 shadow-lg ring-2 ring-white/20 flex items-center justify-center text-white text-xl font-bold"
+                style={{
+                  background: `linear-gradient(135deg, ${live.coverGradient.from}, ${live.coverGradient.via}, ${live.coverGradient.to})`,
+                }}
+              >
+                {live.name.slice(0, 2).toUpperCase()}
+                <CoverImage url={live.coverUrl} alt={live.name} />
+                {coverBusy && (
+                  <span className="absolute inset-0 bg-black/45 flex items-center justify-center">
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  </span>
+                )}
+              </div>
+              <div className="flex flex-col items-start gap-2">
+                <ImagePickerButton
+                  onPick={changeCover}
+                  disabled={coverBusy}
+                  label="Upload cover image"
+                  className="px-3.5 py-2 rounded-full liquid-pill text-xs font-semibold text-[var(--text-primary)] flex items-center gap-1.5 hover:bg-[var(--glass-bg-hover)] cursor-pointer disabled:opacity-60 disabled:cursor-wait"
+                >
+                  <ImagePlus className="w-3.5 h-3.5 text-[var(--accent-cyan)]" />
+                  {live.coverUrl ? "Change cover" : "Upload cover"}
+                </ImagePickerButton>
+                {live.coverUrl && (
+                  <button
+                    type="button"
+                    onClick={clearCover}
+                    disabled={coverBusy}
+                    className="px-3.5 py-2 rounded-full text-xs font-semibold text-rose-400 flex items-center gap-1.5 hover:bg-rose-500/15 cursor-pointer disabled:opacity-60"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    Remove cover
+                  </button>
+                )}
+                <p className="text-[10px] text-[var(--text-muted)]">
+                  JPG, PNG or WebP · cropped to a square
+                </p>
+              </div>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">

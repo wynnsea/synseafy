@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { motion } from "framer-motion";
 import { Play, Pause, SkipForward } from "lucide-react";
 import { usePlayerStore } from "@/src/application/stores/use-player-store";
 import { useUiStore } from "@/src/application/stores/use-ui-store";
@@ -21,7 +22,13 @@ export function MobileMiniPlayer() {
 
   return (
     <div className="md:hidden fixed bottom-[86px] inset-x-4 z-40 flex justify-center pointer-events-none">
-      <div className="pointer-events-auto w-full max-w-[390px] liquid-glass-bar rounded-full p-2 pr-3 flex items-center gap-3 relative overflow-hidden">
+      {/* Slides up the first time a song is picked */}
+      <motion.div
+        initial={{ y: 64, opacity: 0, scale: 0.94 }}
+        animate={{ y: 0, opacity: 1, scale: 1 }}
+        transition={{ type: "spring", stiffness: 280, damping: 26 }}
+        className="pointer-events-auto w-full max-w-[390px] liquid-glass-bar rounded-full p-2 pr-3 flex items-center gap-3 relative overflow-hidden"
+      >
         {/* Subtle bottom progress glow line */}
         <div
           className="absolute bottom-0 left-4 right-4 h-[2px] rounded-full bg-white/10 overflow-hidden"
@@ -43,14 +50,20 @@ export function MobileMiniPlayer() {
             rounded="full"
             spinning={isPlaying}
           />
-          <div className="min-w-0 flex-1">
+          <motion.div
+            key={currentTrack.id}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+            className="min-w-0 flex-1"
+          >
             <p className="text-xs font-semibold text-[var(--text-primary)] truncate">
               {currentTrack.title}
             </p>
             <p className="text-[11px] text-[var(--text-secondary)] truncate">
               {currentTrack.artist}
             </p>
-          </div>
+          </motion.div>
         </button>
 
         <div className="flex items-center gap-1.5 shrink-0">
@@ -73,7 +86,7 @@ export function MobileMiniPlayer() {
             <SkipForward className="w-3.5 h-3.5 fill-current" />
           </button>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

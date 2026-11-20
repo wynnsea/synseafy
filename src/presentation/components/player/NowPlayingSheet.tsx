@@ -25,6 +25,7 @@ import { useLibraryStore } from "@/src/application/stores/use-library-store";
 import { useUiStore } from "@/src/application/stores/use-ui-store";
 import { formatDuration } from "@/src/application/use-cases/format-time";
 import { TrackArtwork } from "@/src/presentation/components/music/TrackArtwork";
+import { useTrackLyrics } from "@/src/application/hooks/use-track-lyrics";
 import { WaveformSeekbar } from "@/src/presentation/components/player/WaveformSeekbar";
 
 type SheetView = "player" | "lyrics" | "queue";
@@ -60,9 +61,7 @@ export function NowPlayingSheet() {
   const progress =
     currentTrack.duration > 0 ? currentTime / currentTrack.duration : 0;
 
-  const activeLyricIndex = currentTrack.lyrics.reduce((acc, line, idx) => {
-    return currentTime >= line.time ? idx : acc;
-  }, 0);
+  const lyrics = useTrackLyrics(currentTrack, currentTime, isOpen && view === "lyrics");
 
   return (
     <AnimatePresence>
@@ -155,13 +154,23 @@ export function NowPlayingSheet() {
 
               {view === "lyrics" && (
                 <div className="w-full h-full overflow-y-auto no-scrollbar px-3 py-3 space-y-4 text-center">
-                  {currentTrack.lyrics.map((line, idx) => {
-                    const active = idx === activeLyricIndex;
+                  {lyrics.status !== "ready" && (
+            <p className="text-center text-sm text-[var(--text-muted)] py-6">
+              {lyrics.status === "loading"
+                ? "Loading lyrics…"
+                : lyrics.status === "error"
+                  ? "Couldn't load lyrics. Try again later."
+                  : "Lyrics aren't available for this song."}
+            </p>
+          )}
+                  {lyrics.lines.map((line, idx) => {
+                    const active = idx === lyrics.activeIndex;
                     return (
                       <button
-                        key={line.time}
-                        onClick={() => seek(line.time)}
-                        className={`block w-full text-center transition-all duration-300 cursor-pointer ${active
+                        key={idx}
+                        onClick={() => lyrics.timed && seek(line.time)}
+                        disabled={!lyrics.timed}
+                        className={`block w-full text-center transition-all duration-300 ${lyrics.timed ? "cursor-pointer" : "cursor-default"} ${active
                           ? "text-lg sm:text-xl font-bold text-[var(--accent-cyan)]"
                           : "text-sm sm:text-base text-[var(--text-secondary)]/65 hover:text-[var(--text-primary)]"
                           }`}

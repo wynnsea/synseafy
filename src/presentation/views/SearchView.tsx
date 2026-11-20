@@ -13,8 +13,7 @@ import {
   Check,
 } from "lucide-react";
 import { Track } from "@/src/domain/entities/track";
-import { GENRES, MOCK_TRACKS } from "@/src/infrastructure/data/mock-tracks";
-import { musicRepository } from "@/src/infrastructure/repositories/mock-music-repository";
+import { musicRepository } from "@/src/infrastructure/repositories/music-repository";
 import { useLibraryStore } from "@/src/application/stores/use-library-store";
 import { useSearchStore } from "@/src/application/stores/use-search-store";
 import { toSlug } from "@/src/application/use-cases/slugify";
@@ -25,38 +24,36 @@ import { PlaylistCard } from "@/src/presentation/components/music/PlaylistCard";
 
 type SearchTab = "all" | "songs" | "artists" | "albums" | "playlists";
 
-const BROWSE_TILES = [
-  {
-    genre: "Ocean Chill",
-    subtitle: "Deep ambient & waves",
-    gradient: "linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%)",
-  },
-  {
-    genre: "Pop",
-    subtitle: "Chart-topping hits",
-    gradient: "linear-gradient(135deg, #06b6d4 0%, #2563eb 100%)",
-  },
-  {
-    genre: "Lo-Fi",
-    subtitle: "Late night study beats",
-    gradient: "linear-gradient(135deg, #14b8a6 0%, #0f766e 100%)",
-  },
-  {
-    genre: "R&B",
-    subtitle: "Smooth coastal vocals",
-    gradient: "linear-gradient(135deg, #38bdf8 0%, #4f46e5 100%)",
-  },
-  {
-    genre: "Indie",
-    subtitle: "Dreamy sunlit guitars",
-    gradient: "linear-gradient(135deg, #22d3ee 0%, #0284c7 100%)",
-  },
-  {
-    genre: "Synthwave",
-    subtitle: "Neon midnight pulse",
-    gradient: "linear-gradient(135deg, #3b82f6 0%, #1e1b4b 100%)",
-  },
+const GENRES = musicRepository.getGenres();
+
+const TILE_GRADIENTS = [
+  "linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%)",
+  "linear-gradient(135deg, #06b6d4 0%, #2563eb 100%)",
+  "linear-gradient(135deg, #14b8a6 0%, #0f766e 100%)",
+  "linear-gradient(135deg, #38bdf8 0%, #6366f1 100%)",
+  "linear-gradient(135deg, #22d3ee 0%, #0891b2 100%)",
+  "linear-gradient(135deg, #3b82f6 0%, #1e1b4b 100%)",
 ];
+
+const TILE_SUBTITLES: Record<string, string> = {
+  "Ocean Chill": "Deep ambient & waves",
+  Chill: "Easy, mellow vibes",
+  Pop: "Chart-topping hits",
+  "Lo-Fi": "Late night study beats",
+  "R&B": "Smooth soulful vocals",
+  Indie: "Dreamy indie picks",
+  Synthwave: "Neon midnight pulse",
+  Acoustic: "Unplugged & warm",
+  Galau: "Lagu buat perasaan",
+  Dangdut: "Goyang terus",
+};
+
+// One browse tile per mood/genre chip ("All" excluded)
+const BROWSE_TILES = GENRES.filter((g) => g !== "All").map((genre, i) => ({
+  genre,
+  subtitle: TILE_SUBTITLES[genre] ?? "Explore songs",
+  gradient: TILE_GRADIENTS[i % TILE_GRADIENTS.length],
+}));
 
 export function SearchView() {
   // Shared with the header search box, so a query typed there lands here
@@ -65,7 +62,7 @@ export function SearchView() {
   const [selectedGenre, setSelectedGenre] = useState("All");
   const [genreMenuOpen, setGenreMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<SearchTab>("all");
-  const [results, setResults] = useState<Track[]>(MOCK_TRACKS);
+  const [results, setResults] = useState<Track[]>([]);
   const [settledKey, setSettledKey] = useState(":All");
   const genreMenuRef = useRef<HTMLDivElement | null>(null);
 
@@ -386,7 +383,7 @@ export function SearchView() {
                       {matchingArtists.map((track) => (
                         <Link
                           key={track.artist}
-                          href={`/artist/${toSlug(track.artist)}`}
+                          href={`/artist/${toSlug(track.artists?.[0] ?? track.artist)}`}
                           className="group liquid-glass rounded-[26px] p-4 flex flex-col items-center text-center gap-3 hover:-translate-y-1 transition-transform"
                         >
                           <TrackArtwork

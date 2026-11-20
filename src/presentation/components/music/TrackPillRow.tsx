@@ -11,18 +11,27 @@ import { formatDuration } from "@/src/application/use-cases/format-time";
 import { toSlug } from "@/src/application/use-cases/slugify";
 import { TrackArtwork } from "@/src/presentation/components/music/TrackArtwork";
 import { EqualizerBars } from "@/src/presentation/components/music/EqualizerBars";
-import { TrackContextMenu } from "@/src/presentation/components/music/TrackContextMenu";
+import {
+  TrackContextMenu,
+  type TrackMenuItem,
+} from "@/src/presentation/components/music/TrackContextMenu";
 
 interface TrackPillRowProps {
   track: Track;
   queueContext?: Track[];
   extraAction?: React.ReactNode;
+  /** Extra entries for the ••• menu (e.g. "Remove from playlist") */
+  menuItems?: TrackMenuItem[];
+  /** Only the ••• button: Like moves into the menu (tight layouts) */
+  compactActions?: boolean;
 }
 
 export function TrackPillRow({
   track,
   queueContext,
   extraAction,
+  menuItems,
+  compactActions = false,
 }: TrackPillRowProps) {
   const { hasActiveTrack, currentTrack, isPlaying, playTrack, togglePlay } =
     usePlayerStore();
@@ -61,9 +70,7 @@ export function TrackPillRow({
         />
         <span
           className={`absolute inset-0 rounded-full bg-black/35 flex items-center justify-center transition-opacity ${
-            isCurrent
-              ? "opacity-100"
-              : "opacity-0 group-hover:opacity-100"
+            isCurrent ? "opacity-100" : "opacity-0 group-hover:opacity-100"
           }`}
         >
           {isCurrent && isPlaying ? (
@@ -93,19 +100,24 @@ export function TrackPillRow({
         </button>
 
         <p className="text-xs text-[var(--text-secondary)] truncate">
+          {/* Link to the main artist; the joined credit ("A, B") has no page of its own */}
           <Link
-            href={`/artist/${toSlug(track.artist)}`}
+            href={`/artist/${toSlug(track.artists?.[0] ?? track.artist)}`}
             className="hover:text-[var(--accent-cyan)] hover:underline"
           >
             {track.artist}
           </Link>
-          <span className="mx-1.5 opacity-60">·</span>
-          <Link
-            href={`/album/${toSlug(track.album)}`}
-            className="hover:text-[var(--accent-cyan)] hover:underline"
-          >
-            {track.album}
-          </Link>
+          {track.album && (
+            <>
+              <span className="mx-1.5 opacity-60">·</span>
+              <Link
+                href={`/album/${toSlug(track.album)}`}
+                className="hover:text-[var(--accent-cyan)] hover:underline"
+              >
+                {track.album}
+              </Link>
+            </>
+          )}
         </p>
       </div>
 
@@ -117,27 +129,33 @@ export function TrackPillRow({
       {extraAction}
 
       {/* Circular Glass Heart Button */}
-      <button
-        onClick={() => {
-          toggleLike(track.id);
-          showToast(
+      {!compactActions && (
+        <button
+          onClick={() => {
+            toggleLike(track.id);
+            showToast(
+              liked
+                ? `Removed "${track.title}" from Liked`
+                : `Saved "${track.title}" to Liked Songs`,
+            );
+          }}
+          aria-label={liked ? "Unlike" : "Like"}
+          className={`w-9 h-9 rounded-full liquid-pill flex items-center justify-center shrink-0 transition-transform active:scale-90 cursor-pointer ${
             liked
-              ? `Removed "${track.title}" from Liked`
-              : `Saved "${track.title}" to Liked Songs`
-          );
-        }}
-        aria-label={liked ? "Unlike" : "Like"}
-        className={`w-9 h-9 rounded-full liquid-pill flex items-center justify-center shrink-0 transition-transform active:scale-90 cursor-pointer ${
-          liked
-            ? "text-sky-400"
-            : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-        }`}
-      >
-        <Heart className={`w-4 h-4 ${liked ? "fill-current" : ""}`} />
-      </button>
+              ? "text-sky-400"
+              : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+          }`}
+        >
+          <Heart className={`w-4 h-4 ${liked ? "fill-current" : ""}`} />
+        </button>
+      )}
 
       {/* Spotify-style Context Menu (...) */}
-      <TrackContextMenu track={track} />
+      <TrackContextMenu
+        track={track}
+        showLike={compactActions}
+        extraItems={menuItems}
+      />
     </div>
   );
 }

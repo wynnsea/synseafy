@@ -33,12 +33,14 @@ export function SideDrawerPanel() {
             transition={{ type: "spring", stiffness: 320, damping: 32 }}
             className="hidden md:flex xl:hidden fixed lg:static top-4 right-4 bottom-[106px] lg:top-auto lg:right-auto lg:bottom-auto lg:h-screen lg:p-4 lg:pl-1 z-40 lg:z-20 shrink-0 overflow-hidden"
           >
-            <div className="w-full h-full liquid-glass-dock lg:liquid-glass-strong rounded-[30px] p-4 overflow-hidden">
-              <NowPlayingPanel
-                tab={activeDrawer}
-                onTabChange={setActiveDrawer}
-                onClose={() => setActiveDrawer(null)}
-              />
+            <div className="w-full h-full liquid-glass-dock lg:liquid-glass-strong rounded-[30px] p-4 overflow-hidden flex flex-col gap-4">
+              <div className="flex-1 min-h-0">
+                <NowPlayingPanel
+                  tab={activeDrawer}
+                  onTabChange={setActiveDrawer}
+                  onClose={() => setActiveDrawer(null)}
+                />
+              </div>
             </div>
           </motion.aside>
         </>

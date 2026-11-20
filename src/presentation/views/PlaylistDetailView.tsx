@@ -9,10 +9,13 @@ import {
   Plus,
   ArrowLeft,
   Check,
-  Pencil,
   GripVertical,
 } from "lucide-react";
-import { MOCK_TRACKS } from "@/src/infrastructure/data/mock-tracks";
+import { resolveTracks } from "@/src/infrastructure/data/catalog";
+import { useCatalogStore } from "@/src/application/stores/use-catalog-store";
+import { useSongSearch } from "@/src/application/hooks/use-song-search";
+import { PlaylistActionsMenu } from "@/src/presentation/components/music/PlaylistActionsMenu";
+import { CoverImage } from "@/src/presentation/components/ui/CoverImage";
 import { useLibraryStore } from "@/src/application/stores/use-library-store";
 import { usePlayerStore } from "@/src/application/stores/use-player-store";
 import { TopHeader } from "@/src/presentation/components/layout/TopHeader";
@@ -39,12 +42,23 @@ export function PlaylistDetailView({ playlistId }: PlaylistDetailViewProps) {
 
   const playlist = playlists.find((p) => p.id === playlistId);
 
-  const tracks = useMemo(() => {
-    if (!playlist) return [];
-    return playlist.trackIds
-      .map((id) => MOCK_TRACKS.find((t) => t.id === id))
-      .filter((t): t is (typeof MOCK_TRACKS)[number] => Boolean(t));
-  }, [playlist]);
+  const tracks = useMemo(
+    () => (playlist ? resolveTracks(playlist.trackIds) : []),
+    [playlist]
+  );
+
+  // Song picker: search YouTube Music, or suggest recent + home feed songs
+  const [pickerQuery, setPickerQuery] = useState("");
+  const search = useSongSearch(pickerQuery);
+  const recentTrackIds = useLibraryStore((s) => s.recentTrackIds);
+  const home = useCatalogStore((s) => s.home);
+  const pickerTracks = useMemo(() => {
+    if (pickerQuery.trim()) return search.tracks;
+    const seen = new Set<string>();
+    return [...resolveTracks(recentTrackIds), ...(home?.quickPicks ?? []), ...(home?.trending ?? [])]
+      .filter((t) => (seen.has(t.id) ? false : (seen.add(t.id), true)))
+      .slice(0, 20);
+  }, [pickerQuery, search.tracks, recentTrackIds, home]);
 
   if (!playlist) {
     return (
@@ -71,7 +85,7 @@ export function PlaylistDetailView({ playlistId }: PlaylistDetailViewProps) {
       <div className="px-4 md:px-7 space-y-6 pb-4">
         <button
           onClick={() => router.push("/library")}
-          className="inline-flex items-center gap-2 px-3.5 py-2 rounded-full liquid-pill text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer"
+          className="hidden md:inline-flex items-center gap-2 px-3.5 py-2 rounded-full liquid-pill text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Library
@@ -81,12 +95,13 @@ export function PlaylistDetailView({ playlistId }: PlaylistDetailViewProps) {
         <div className="liquid-glass-strong rounded-[32px] p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-5">
           <div className="flex items-center gap-5">
             <div
-              className="w-20 h-20 sm:w-24 sm:h-24 rounded-[26px] shrink-0 shadow-xl ring-2 ring-white/20 flex items-center justify-center text-white text-2xl font-bold"
+              className="relative overflow-hidden w-20 h-20 sm:w-24 sm:h-24 rounded-[26px] shrink-0 shadow-xl ring-2 ring-white/20 flex items-center justify-center text-white text-2xl font-bold"
               style={{
                 background: `linear-gradient(135deg, ${playlist.coverGradient.from}, ${playlist.coverGradient.via}, ${playlist.coverGradient.to})`,
               }}
             >
               {playlist.name.slice(0, 2).toUpperCase()}
+              <CoverImage url={playlist.coverUrl} alt={playlist.name} />
             </div>
             <div>
               <h2 className="text-xl md:text-2xl font-bold text-[var(--text-primary)]">
@@ -101,7 +116,7 @@ export function PlaylistDetailView({ playlistId }: PlaylistDetailViewProps) {
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2 sm:gap-2.5">
             {tracks.length > 0 && (
               <button
                 onClick={() => {
@@ -116,28 +131,18 @@ export function PlaylistDetailView({ playlistId }: PlaylistDetailViewProps) {
             )}
             <button
               onClick={() => setShowPicker((v) => !v)}
-              className="px-4 py-2.5 rounded-full liquid-pill text-xs font-semibold text-[var(--text-primary)] flex items-center gap-1.5 cursor-pointer"
+              className="px-4 py-2.5 rounded-full liquid-pill text-xs font-semibold whitespace-nowrap text-[var(--text-primary)] flex items-center gap-1.5 cursor-pointer"
             >
               <Plus className="w-4 h-4 text-[var(--accent-cyan)]" />
               Add Songs
             </button>
-            <button
-              onClick={() => setIsEditOpen(true)}
-              title="Edit Playlist"
-              className="w-10 h-10 rounded-full liquid-pill flex items-center justify-center text-[var(--text-primary)] hover:text-[var(--accent-cyan)] cursor-pointer"
-            >
-              <Pencil className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => {
+            <PlaylistActionsMenu
+              onEdit={() => setIsEditOpen(true)}
+              onDelete={() => {
                 deletePlaylist(playlist.id);
                 router.push("/library");
               }}
-              title="Delete Playlist"
-              className="w-10 h-10 rounded-full liquid-pill flex items-center justify-center text-rose-400 hover:bg-rose-500/15 cursor-pointer"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
+            />
           </div>
         </div>
 
@@ -147,8 +152,24 @@ export function PlaylistDetailView({ playlistId }: PlaylistDetailViewProps) {
             <p className="text-xs font-semibold uppercase tracking-wider text-[var(--accent-cyan)] px-1">
               Tap to add or remove songs
             </p>
+            <input
+              type="search"
+              value={pickerQuery}
+              onChange={(e) => setPickerQuery(e.target.value)}
+              placeholder="Search songs to add"
+              aria-label="Search songs to add"
+              className="w-full liquid-pill rounded-full px-4 py-2.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-sky-400/60"
+            />
+            {search.loading && (
+              <p className="text-xs text-[var(--text-muted)] px-1">Searching…</p>
+            )}
+            {!search.loading && pickerTracks.length === 0 && (
+              <p className="text-xs text-[var(--text-muted)] px-1">
+                {pickerQuery.trim() ? "No songs found." : "Search for a song to add it here."}
+              </p>
+            )}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {MOCK_TRACKS.map((t) => {
+              {pickerTracks.map((t) => {
                 const included = playlist.trackIds.includes(t.id);
                 return (
                   <button
@@ -208,17 +229,15 @@ export function PlaylistDetailView({ playlistId }: PlaylistDetailViewProps) {
                     <TrackPillRow
                       track={track}
                       queueContext={tracks}
-                      extraAction={
-                        <button
-                          onClick={() =>
-                            removeTrackFromPlaylist(playlist.id, track.id)
-                          }
-                          title="Remove from playlist"
-                          className="w-8 h-8 rounded-full liquid-pill flex items-center justify-center text-[var(--text-muted)] hover:text-rose-400 cursor-pointer"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      }
+                      compactActions
+                      menuItems={[
+                        {
+                          label: "Remove from this playlist",
+                          icon: Trash2,
+                          danger: true,
+                          onSelect: () => removeTrackFromPlaylist(playlist.id, track.id),
+                        },
+                      ]}
                     />
                   </div>
                 </Reorder.Item>

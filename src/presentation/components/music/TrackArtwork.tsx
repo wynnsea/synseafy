@@ -44,6 +44,19 @@ export function TrackArtwork({
           : undefined,
       }}
     >
+      {/* Real cover from YouTube Music, over the gradient (which shows while loading) */}
+      {track.thumbnailUrl && (
+        // eslint-disable-next-line @next/next/no-img-element -- remote YouTube image, sized by CSS
+        <img
+          src={track.thumbnailUrl}
+          alt=""
+          loading="lazy"
+          referrerPolicy="no-referrer"
+          draggable={false}
+          className="absolute inset-0 w-full h-full object-cover z-[1]"
+        />
+      )}
+
       {/* Subtle liquid glass specular highlight */}
       <div
         className="absolute inset-0 opacity-60"
@@ -121,7 +134,7 @@ export function TrackArtwork({
       <div className="absolute inset-0 bg-gradient-to-tr from-black/25 via-transparent to-white/20 pointer-events-none" />
 
       {showCenterHole && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <div className="absolute inset-0 z-[2] flex items-center justify-center pointer-events-none">
           <div className="w-7 h-7 rounded-full bg-[var(--bg-canvas)]/70 border border-white/30 backdrop-blur-md" />
         </div>
       )}

@@ -8,6 +8,7 @@ import { ChevronDown, LogOut, Settings } from "lucide-react";
 import { useAuthStore } from "@/src/application/stores/use-auth-store";
 import { useToastStore } from "@/src/application/stores/use-toast-store";
 import { APP_ROUTES } from "@/src/infrastructure/config/app-config";
+import { UserAvatar } from "@/src/presentation/components/ui/UserAvatar";
 
 /**
  * Header avatar with a dropdown (Settings, Sign out). Desktop/tablet only;
@@ -62,9 +63,7 @@ export function ProfileMenu({ showName = false }: { showName?: boolean }) {
           showName ? "w-full gap-2.5" : "liquid-pill"
         }`}
       >
-        <span className="w-8 h-8 rounded-full ocean-gradient-btn flex items-center justify-center text-[11px] font-bold shrink-0">
-          {user.initials}
-        </span>
+        <UserAvatar user={user} className="w-8 h-8 text-[11px]" />
         {showName && (
           <span className="min-w-0 flex-1 text-left">
             <span className="block text-[13px] font-semibold text-[var(--text-primary)] truncate">

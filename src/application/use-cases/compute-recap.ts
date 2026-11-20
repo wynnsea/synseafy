@@ -43,9 +43,8 @@ const HOUR_SLOTS = [
 
 export function computeListeningRecap(
   records: PlayRecord[],
-  catalog: Track[]
+  lookup: (trackId: string) => Track | undefined
 ): ListeningRecap {
-  const trackMap = new Map(catalog.map((t) => [t.id, t]));
   const trackCounts = new Map<string, { plays: number; totalSeconds: number }>();
   const artistCounts = new Map<string, { plays: number; sampleTrack: Track }>();
   const genreCounts = new Map<string, number>();
@@ -54,7 +53,7 @@ export function computeListeningRecap(
   let totalSeconds = 0;
 
   records.forEach((rec) => {
-    const track = trackMap.get(rec.trackId);
+    const track = lookup(rec.trackId);
     if (!track) return;
 
     totalSeconds += rec.durationListened;
@@ -71,7 +70,8 @@ export function computeListeningRecap(
       sampleTrack: prevA?.sampleTrack ?? track,
     });
 
-    genreCounts.set(track.genre, (genreCounts.get(track.genre) ?? 0) + 1);
+    // YouTube Music songs carry no genre; only count ones that have it
+    if (track.genre) genreCounts.set(track.genre, (genreCounts.get(track.genre) ?? 0) + 1);
 
     const hour = new Date(rec.playedAt).getHours();
     const slotIdx = HOUR_SLOTS.findIndex((s) => hour >= s.min && hour <= s.max);
@@ -80,7 +80,7 @@ export function computeListeningRecap(
 
   const topTracks: RankedTrack[] = Array.from(trackCounts.entries())
     .map(([id, stats]) => ({
-      track: trackMap.get(id)!,
+      track: lookup(id)!,
       plays: stats.plays,
       totalSeconds: stats.totalSeconds,
     }))
@@ -94,9 +94,9 @@ export function computeListeningRecap(
     }))
     .sort((a, b) => b.plays - a.plays);
 
+  // Empty when no played song has a genre (the UI shows the top artist instead)
   const topGenre =
-    Array.from(genreCounts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] ??
-    "Ocean Chill";
+    Array.from(genreCounts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "";
 
   const hourBuckets: HourBucket[] = HOUR_SLOTS.map((slot, idx) => ({
     label: slot.label,

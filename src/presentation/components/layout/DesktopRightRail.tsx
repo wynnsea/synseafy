@@ -17,16 +17,15 @@ import { useActivityStore } from "@/src/application/stores/use-activity-store";
 import { useAuthStore } from "@/src/application/stores/use-auth-store";
 import { useUiStore } from "@/src/application/stores/use-ui-store";
 import { toSlug } from "@/src/application/use-cases/slugify";
-import {
-  getAllCatalogTracks,
-  getCatalogTrack,
-} from "@/src/infrastructure/data/catalog";
+import { getCatalogTrack } from "@/src/infrastructure/data/catalog";
+import { useCatalogStore } from "@/src/application/stores/use-catalog-store";
 import { APP_ROUTES } from "@/src/infrastructure/config/app-config";
 import { TrackArtwork } from "@/src/presentation/components/music/TrackArtwork";
 import { EqualizerBars } from "@/src/presentation/components/music/EqualizerBars";
 import { ProfileMenu } from "@/src/presentation/components/layout/ProfileMenu";
 import { ThemeToggleButton } from "@/src/presentation/components/layout/ThemeToggleButton";
 import { NowPlayingPanel } from "@/src/presentation/components/player/NowPlayingPanel";
+import { motion } from "framer-motion";
 
 const TRENDING_COUNT = 10;
 const ARTIST_COUNT = 6;
@@ -98,26 +97,15 @@ export function DesktopRightRail() {
   const user = useAuthStore((s) => s.user);
   const records = useActivityStore((s) => s.records);
 
-  const catalog = getAllCatalogTracks();
-  // Trending first, then popular, so the list is long enough to fill the column
+  const home = useCatalogStore((s) => s.home);
   const trending = useMemo(
-    () =>
-      [...catalog]
-        .sort(
-          (a, b) =>
-            Number(Boolean(b.isTrending)) - Number(Boolean(a.isTrending)) ||
-            Number(Boolean(b.isPopular)) - Number(Boolean(a.isPopular)),
-        )
-        .slice(0, TRENDING_COUNT),
-    [catalog],
+    () => (home?.trending ?? []).slice(0, TRENDING_COUNT),
+    [home],
   );
-  const artists = useMemo(() => {
-    const seen = new Map<string, Track>();
-    for (const t of catalog.filter((t) => t.isPopular || t.isTrending)) {
-      if (!seen.has(t.artist)) seen.set(t.artist, t);
-    }
-    return Array.from(seen.values()).slice(0, ARTIST_COUNT);
-  }, [catalog]);
+  const artists = useMemo(
+    () => (home?.artists ?? []).slice(0, ARTIST_COUNT),
+    [home],
+  );
 
   // Most played song in the loaded history
   const topTrack = useMemo(() => {
@@ -152,12 +140,19 @@ export function DesktopRightRail() {
 
       {hasActiveTrack ? (
         /* A song is playing: this column becomes the Lyrics / Up Next panel */
-        <section className="liquid-glass-strong rounded-[28px] p-4 flex-1 min-h-0">
-          <NowPlayingPanel
-            tab={activeDrawer ?? "lyrics"}
-            onTabChange={setActiveDrawer}
-          />
-        </section>
+        <motion.section
+          initial={{ opacity: 0, y: 24, scale: 0.97 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ type: "spring", stiffness: 260, damping: 26 }}
+          className="liquid-glass-strong rounded-[28px] p-4 flex-1 min-h-0 flex flex-col gap-4"
+        >
+          <div className="flex-1 min-h-0">
+            <NowPlayingPanel
+              tab={activeDrawer ?? "lyrics"}
+              onTabChange={setActiveDrawer}
+            />
+          </div>
+        </motion.section>
       ) : (
         <>
           {/* Trending Now */}
@@ -193,19 +188,28 @@ export function DesktopRightRail() {
               Popular Artists
             </h2>
             <div className="grid grid-cols-3 gap-2">
-              {artists.map((t) => (
+              {artists.map((a) => (
                 <Link
-                  key={t.artist}
-                  href={`/artist/${toSlug(t.artist)}`}
+                  key={a.id}
+                  href={`/artist/${toSlug(a.name)}`}
                   className="group flex flex-col items-center gap-1.5 p-1.5 rounded-2xl hover:bg-[var(--glass-bg-hover)] transition-colors"
                 >
-                  <TrackArtwork
-                    track={t}
-                    className="w-14 h-14"
-                    rounded="full"
-                  />
+                  {a.thumbnailUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- remote YouTube image, sized by CSS
+                    <img
+                      src={a.thumbnailUrl}
+                      alt=""
+                      loading="lazy"
+                      referrerPolicy="no-referrer"
+                      className="w-14 h-14 rounded-full object-cover ring-1 ring-white/20"
+                    />
+                  ) : (
+                    <span className="w-14 h-14 rounded-full ocean-gradient-soft flex items-center justify-center text-sm font-bold text-white">
+                      {a.name.slice(0, 2).toUpperCase()}
+                    </span>
+                  )}
                   <span className="w-full text-center text-[11px] font-medium text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] truncate">
-                    {t.artist}
+                    {a.name}
                   </span>
                 </Link>
               ))}

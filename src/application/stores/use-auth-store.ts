@@ -2,6 +2,11 @@ import { create } from "zustand";
 import type { Session, User } from "@supabase/supabase-js";
 import { getSupabase } from "@/src/infrastructure/supabase/client";
 import { APP_ROUTES } from "@/src/infrastructure/config/app-config";
+import {
+  deleteUserImage,
+  prepareSquareImage,
+  uploadUserImage,
+} from "@/src/infrastructure/supabase/image-upload";
 
 export interface AuthUser {
   id: string;
@@ -33,6 +38,10 @@ interface AuthState {
   ) => Promise<AuthResult>;
   signInWithGoogle: () => Promise<AuthResult>;
   updateProfileName: (name: string) => Promise<AuthResult>;
+  /** Upload a new profile photo (cropped square, 512px WebP). */
+  updateAvatar: (file: File) => Promise<AuthResult>;
+  /** Go back to initials (or nothing) instead of a photo. */
+  removeAvatar: () => Promise<AuthResult>;
   signOut: () => Promise<void>;
 }
 
@@ -163,6 +172,39 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (error) return { ok: false, error: friendlyError(error.message) };
 
     set({ user: { ...user, name: cleanName, initials: getInitials(cleanName) } });
+    return { ok: true };
+  },
+
+  updateAvatar: async (file) => {
+    const user = get().user;
+    if (!user) return { ok: false, error: "Sign in to change your photo." };
+    try {
+      const image = await prepareSquareImage(file);
+      const url = await uploadUserImage("avatars", user.id, "avatar", image);
+      const { error } = await getSupabase()
+        .from("profiles")
+        .update({ avatar_url: url })
+        .eq("id", user.id);
+      if (error) return { ok: false, error: friendlyError(error.message) };
+      set({ user: { ...user, avatarUrl: url } });
+      // Remove the previous upload only once the new one is saved
+      void deleteUserImage("avatars", user.avatarUrl).catch(() => {});
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: (err as Error).message || "Couldn't update your photo." };
+    }
+  },
+
+  removeAvatar: async () => {
+    const user = get().user;
+    if (!user?.avatarUrl) return { ok: true };
+    const { error } = await getSupabase()
+      .from("profiles")
+      .update({ avatar_url: null })
+      .eq("id", user.id);
+    if (error) return { ok: false, error: friendlyError(error.message) };
+    set({ user: { ...user, avatarUrl: null } });
+    void deleteUserImage("avatars", user.avatarUrl).catch(() => {});
     return { ok: true };
   },
 

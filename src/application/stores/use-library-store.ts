@@ -7,6 +7,12 @@ import {
   persist,
   requireSignIn,
 } from "@/src/application/stores/user-data-sync";
+import { useAuthStore } from "@/src/application/stores/use-auth-store";
+import {
+  deleteUserImage,
+  prepareSquareImage,
+  uploadUserImage,
+} from "@/src/infrastructure/supabase/image-upload";
 
 const COVER_PRESETS = [
   { from: "#0ea5e9", via: "#0284c7", to: "#082f49" },
@@ -46,6 +52,10 @@ interface LibraryState {
     toIndex: number
   ) => void;
   reorderPlaylistTracks: (playlistId: string, trackIds: string[]) => void;
+
+  /** Upload and set a custom cover. Resolves with an error message on failure. */
+  setPlaylistCover: (playlistId: string, file: File) => Promise<string | null>;
+  removePlaylistCover: (playlistId: string) => Promise<string | null>;
 }
 
 const EMPTY = { playlists: [], likedTrackIds: [], recentTrackIds: [] };
@@ -170,11 +180,15 @@ export const useLibraryStore = create<LibraryState>((set, get) => {
     },
 
     deletePlaylist: (id) => {
+      const cover = get().playlists.find((pl) => pl.id === id)?.coverUrl;
       set((state) => ({
         playlists: state.playlists.filter((pl) => pl.id !== id),
       }));
       persist(
-        userLibraryRepository.deletePlaylist(id),
+        userLibraryRepository.deletePlaylist(id).then(() =>
+          // Only once the playlist is really gone
+          deleteUserImage("playlist-covers", cover).catch(() => {})
+        ),
         "Couldn't delete the playlist. Please try again."
       );
     },
@@ -208,5 +222,43 @@ export const useLibraryStore = create<LibraryState>((set, get) => {
 
     reorderPlaylistTracks: (playlistId, trackIds) =>
       setTrackIds(playlistId, trackIds),
+
+    setPlaylistCover: async (playlistId, file) => {
+      const user = useAuthStore.getState().user;
+      const playlist = get().playlists.find((pl) => pl.id === playlistId);
+      if (!user || !playlist) return "Sign in to change playlist covers.";
+      try {
+        const image = await prepareSquareImage(file);
+        const url = await uploadUserImage("playlist-covers", user.id, playlistId, image);
+        await userLibraryRepository.updatePlaylistCover(playlistId, url);
+        set((state) => ({
+          playlists: state.playlists.map((pl) =>
+            pl.id === playlistId ? { ...pl, coverUrl: url } : pl
+          ),
+        }));
+        // Only after the new cover is saved, so a failure never loses the old one
+        void deleteUserImage("playlist-covers", playlist.coverUrl).catch(() => {});
+        return null;
+      } catch (err) {
+        return (err as Error).message || "Couldn't update the cover.";
+      }
+    },
+
+    removePlaylistCover: async (playlistId) => {
+      const playlist = get().playlists.find((pl) => pl.id === playlistId);
+      if (!playlist?.coverUrl) return null;
+      try {
+        await userLibraryRepository.updatePlaylistCover(playlistId, null);
+        set((state) => ({
+          playlists: state.playlists.map((pl) =>
+            pl.id === playlistId ? { ...pl, coverUrl: undefined } : pl
+          ),
+        }));
+        void deleteUserImage("playlist-covers", playlist.coverUrl).catch(() => {});
+        return null;
+      } catch (err) {
+        return (err as Error).message || "Couldn't remove the cover.";
+      }
+    },
   };
 });

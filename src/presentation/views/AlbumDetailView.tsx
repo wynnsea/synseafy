@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Play } from "lucide-react";
-import { MOCK_TRACKS } from "@/src/infrastructure/data/mock-tracks";
+import { useSlugTracks } from "@/src/application/hooks/use-slug-tracks";
 import { toSlug } from "@/src/application/use-cases/slugify";
 import { usePlayerStore } from "@/src/application/stores/use-player-store";
 import { useLibraryStore } from "@/src/application/stores/use-library-store";
@@ -18,13 +18,19 @@ export function AlbumDetailView({ slug }: { slug: string }) {
   const playTrack = usePlayerStore((s) => s.playTrack);
   const recordPlayed = useLibraryStore((s) => s.recordPlayed);
 
-  const albumTracks = useMemo(
-    () => MOCK_TRACKS.filter((t) => toSlug(t.album) === slug),
-    [slug]
-  );
+  const { tracks: albumTracks, loading } = useSlugTracks("album", slug);
 
   const primary = albumTracks[0];
   const totalDuration = albumTracks.reduce((sum, t) => sum + t.duration, 0);
+
+  if (loading) {
+    return (
+      <div className="w-full max-w-[1440px] mx-auto px-4 md:px-7 py-12 space-y-4">
+        <div className="liquid-glass-strong rounded-[32px] h-40 animate-pulse" />
+        <div className="liquid-glass rounded-[28px] h-64 animate-pulse" />
+      </div>
+    );
+  }
 
   if (!primary) {
     return (
@@ -51,7 +57,7 @@ export function AlbumDetailView({ slug }: { slug: string }) {
       <div className="px-4 md:px-7 space-y-6 pb-6">
         <button
           onClick={() => router.back()}
-          className="inline-flex items-center gap-2 px-3.5 py-2 rounded-full liquid-pill text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer"
+          className="hidden md:inline-flex items-center gap-2 px-3.5 py-2 rounded-full liquid-pill text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
           Back
@@ -66,14 +72,14 @@ export function AlbumDetailView({ slug }: { slug: string }) {
             />
             <div>
               <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--accent-cyan)]">
-                Album · {primary.genre}
+                {primary.genre ? `Album · ${primary.genre}` : "Album"}
               </span>
               <h2 className="text-xl md:text-3xl font-bold text-[var(--text-primary)] mt-1">
                 {primary.album}
               </h2>
               <p className="text-xs sm:text-sm text-[var(--text-secondary)] mt-1">
                 <Link
-                  href={`/artist/${toSlug(primary.artist)}`}
+                  href={`/artist/${toSlug(primary.artists?.[0] ?? primary.artist)}`}
                   className="font-semibold text-[var(--text-primary)] hover:text-[var(--accent-cyan)] hover:underline"
                 >
                   {primary.artist}

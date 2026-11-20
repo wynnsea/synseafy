@@ -19,6 +19,8 @@ export const AUTH_ROUTE_PATHS: readonly string[] = [
 ];
 
 export const appConfig = {
+  /** "true" serves the bundled offline sample catalog instead of the FastAPI backend */
+  useMockData: process.env.NEXT_PUBLIC_USE_MOCK_DATA === "true",
   appName: process.env.NEXT_PUBLIC_APP_NAME || "Synseafy",
   productionDomain: "https://music.wynnsea.my.id",
   appUrl:

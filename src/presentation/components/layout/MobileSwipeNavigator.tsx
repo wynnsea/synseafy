@@ -12,8 +12,8 @@ import { SearchView } from "@/src/presentation/views/SearchView";
 import { LibraryView } from "@/src/presentation/views/LibraryView";
 import { ProfileView } from "@/src/presentation/views/ProfileView";
 
-// Left-to-right order matches the tab bar: [Home, Library, Profile] + Search orb
-export const SWIPE_ROUTES = ["/", "/library", "/profile", "/search"] as const;
+// Left-to-right order matches the tab bar
+export const SWIPE_ROUTES = ["/", "/search", "/library", "/profile"] as const;
 
 function isInsideHorizontalScrollOrControl(target: EventTarget | null): boolean {
   let el = target as HTMLElement | null;
@@ -204,13 +204,13 @@ export function MobileSwipeNavigator({
             <HomeView />
           </div>
           <div className="w-full shrink-0 min-w-full h-full overflow-y-auto overscroll-y-contain pb-[176px]">
+            <SearchView />
+          </div>
+          <div className="w-full shrink-0 min-w-full h-full overflow-y-auto overscroll-y-contain pb-[176px]">
             <LibraryView />
           </div>
           <div className="w-full shrink-0 min-w-full h-full overflow-y-auto overscroll-y-contain pb-[176px]">
             <ProfileView />
-          </div>
-          <div className="w-full shrink-0 min-w-full h-full overflow-y-auto overscroll-y-contain pb-[176px]">
-            <SearchView />
           </div>
         </div>
       </div>

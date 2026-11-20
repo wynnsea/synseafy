@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useLibraryStore } from "@/src/application/stores/use-library-store";
 import { useUiStore } from "@/src/application/stores/use-ui-store";
+import { CoverImage } from "@/src/presentation/components/ui/CoverImage";
 
 const NAV_ITEMS = [
   { href: "/", label: "Home", icon: Home },
@@ -170,12 +171,13 @@ export function DesktopLiquidSidebar() {
                 }`}
               >
                 <div
-                  className="w-9 h-9 rounded-full shrink-0 flex items-center justify-center text-white text-[11px] font-bold shadow-md ring-2 ring-white/30 group-hover:scale-105 transition-transform"
+                  className="relative overflow-hidden w-9 h-9 rounded-full shrink-0 flex items-center justify-center text-white text-[11px] font-bold shadow-md ring-2 ring-white/30 group-hover:scale-105 transition-transform"
                   style={{
                     background: `linear-gradient(135deg, ${pl.coverGradient.from}, ${pl.coverGradient.via}, ${pl.coverGradient.to})`,
                   }}
                 >
                   {pl.name.slice(0, 2).toUpperCase()}
+                  <CoverImage url={pl.coverUrl} />
                 </div>
                 {isSidebarExpanded && (
                   <div className="hidden lg:block min-w-0 flex-1">

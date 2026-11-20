@@ -3,25 +3,30 @@
 import React from "react";
 import Link from "next/link";
 import { Heart, Play } from "lucide-react";
-import { MOCK_TRACKS } from "@/src/infrastructure/data/mock-tracks";
+import { Track } from "@/src/domain/entities/track";
+import { resolveTracks } from "@/src/infrastructure/data/catalog";
 import { useLibraryStore } from "@/src/application/stores/use-library-store";
 import { usePlayerStore } from "@/src/application/stores/use-player-store";
 import { TrackArtwork } from "@/src/presentation/components/music/TrackArtwork";
+import { CoverImage } from "@/src/presentation/components/ui/CoverImage";
 
 /**
  * Spotify-style 2x3 Quick-Pick Grid right at the top of Home
  * Instant 1-tap access to Liked Songs, custom playlists, and top recent picks.
  */
-export function QuickPickGrid() {
-  const { playlists, likedTrackIds, recordPlayed } = useLibraryStore();
+export function QuickPickGrid({ suggestions }: { suggestions: Track[] }) {
+  const { playlists, likedTrackIds, recentTrackIds, recordPlayed } = useLibraryStore();
   const playTrack = usePlayerStore((s) => s.playTrack);
 
-  const likedTracks = likedTrackIds
-    .map((id) => MOCK_TRACKS.find((t) => t.id === id))
-    .filter((t): t is (typeof MOCK_TRACKS)[number] => Boolean(t));
+  const likedTracks = resolveTracks(likedTrackIds);
 
   const quickPlaylists = playlists.slice(0, 3);
-  const quickTracks = MOCK_TRACKS.slice(0, Math.max(0, 5 - quickPlaylists.length));
+  // Fill the remaining tiles with what you played recently, then suggestions
+  const slots = Math.max(0, 5 - quickPlaylists.length);
+  const seen = new Set<string>();
+  const quickTracks = [...resolveTracks(recentTrackIds), ...suggestions]
+    .filter((t) => (seen.has(t.id) ? false : (seen.add(t.id), true)))
+    .slice(0, slots);
 
   return (
     <section className="grid grid-cols-2 xl:grid-cols-3 gap-2.5 sm:gap-3">
@@ -59,9 +64,7 @@ export function QuickPickGrid() {
 
       {/* Tiles 2-4: Custom Playlists */}
       {quickPlaylists.map((pl) => {
-        const plTracks = pl.trackIds
-          .map((id) => MOCK_TRACKS.find((t) => t.id === id))
-          .filter((t): t is (typeof MOCK_TRACKS)[number] => Boolean(t));
+        const plTracks = resolveTracks(pl.trackIds);
 
         return (
           <Link
@@ -70,12 +73,13 @@ export function QuickPickGrid() {
             className="group liquid-glass rounded-2xl p-2 pr-3 flex items-center gap-3 hover:bg-[var(--glass-bg-hover)] transition-all overflow-hidden"
           >
             <div
-              className="w-12 h-12 rounded-xl shrink-0 flex items-center justify-center text-white text-xs font-bold shadow-sm"
+              className="relative overflow-hidden w-12 h-12 rounded-xl shrink-0 flex items-center justify-center text-white text-xs font-bold shadow-sm"
               style={{
                 background: `linear-gradient(135deg, ${pl.coverGradient.from}, ${pl.coverGradient.via}, ${pl.coverGradient.to})`,
               }}
             >
               {pl.name.slice(0, 2).toUpperCase()}
+              <CoverImage url={pl.coverUrl} />
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-xs sm:text-sm font-semibold text-[var(--text-primary)] truncate">
@@ -109,7 +113,8 @@ export function QuickPickGrid() {
           key={track.id}
           type="button"
           onClick={() => {
-            playTrack(track, MOCK_TRACKS);
+            // Radio from this song (the tiles are mostly songs you've played)
+            playTrack(track, [track]);
             recordPlayed(track.id);
           }}
           className="group liquid-glass rounded-2xl p-2 pr-3 flex items-center gap-3 hover:bg-[var(--glass-bg-hover)] transition-all text-left overflow-hidden cursor-pointer"

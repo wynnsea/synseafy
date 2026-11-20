@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { Play, Music2 } from "lucide-react";
 import { Playlist } from "@/src/domain/entities/playlist";
+import { CoverImage } from "@/src/presentation/components/ui/CoverImage";
 
 interface PlaylistCardProps {
   playlist: Playlist;
@@ -28,6 +29,7 @@ export function PlaylistCard({ playlist }: PlaylistCardProps) {
               "radial-gradient(circle at 25% 20%, rgba(255,255,255,0.45), transparent 55%)",
           }}
         />
+        <CoverImage url={playlist.coverUrl} />
         <span className="relative z-10 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-black/30 text-white backdrop-blur-md border border-white/20 flex items-center gap-1.5">
           <Music2 className="w-3 h-3" />
           {playlist.trackIds.length} songs

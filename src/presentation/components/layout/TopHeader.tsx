@@ -8,6 +8,7 @@ import { LogIn, Heart } from "lucide-react";
 import { useAuthStore } from "@/src/application/stores/use-auth-store";
 import { ThemeToggleButton } from "@/src/presentation/components/layout/ThemeToggleButton";
 import { HeaderSearch } from "@/src/presentation/components/layout/HeaderSearch";
+import { UserAvatar } from "@/src/presentation/components/ui/UserAvatar";
 
 const noopSubscribe = () => () => {};
 
@@ -51,15 +52,7 @@ export function TopHeader({
 
   return (
     <header className="@container sticky top-0 z-30 pt-4 pb-5 px-4 md:px-7 bg-gradient-to-b from-[var(--bg-canvas)] via-[var(--bg-canvas)]/92 to-transparent">
-      {/* With the search box: a balanced 3-column grid (title | search | actions) so the
-          search sits in the true centre. Without it: a simple space-between row. */}
-      <div
-        className={`liquid-glass-bar liquid-glass-solid rounded-full px-3.5 py-2.5 md:pl-6 md:pr-3 md:py-3 xl:pr-6 flex items-center justify-between gap-3 md:gap-5 ${
-          showHeaderSearch
-            ? "@2xl:grid @2xl:grid-cols-[minmax(auto,1fr)_minmax(0,2fr)_minmax(auto,1fr)]"
-            : ""
-        }`}
-      >
+      <div className="liquid-glass-bar liquid-glass-solid rounded-full px-3.5 py-2.5 md:pl-6 md:pr-3 md:py-3 flex items-center justify-between gap-3 md:gap-5">
         {/* Left: Avatar + Personal Greeting */}
         <Link
           href={user ? APP_ROUTES.profile : APP_ROUTES.login}
@@ -68,9 +61,7 @@ export function TopHeader({
         >
           <div className="md:hidden w-10 h-10 rounded-full liquid-pill p-1.5 shrink-0 shadow-md group-hover:scale-105 transition-transform flex items-center justify-center">
             {user ? (
-              <span className="text-xs font-bold text-[var(--accent-cyan)]">
-                {user.initials}
-              </span>
+              <UserAvatar user={user} className="w-full h-full text-xs" />
             ) : (
               <Image
                 src="/brand/logo-v3.png"
@@ -91,17 +82,17 @@ export function TopHeader({
           </div>
         </Link>
 
-        {/* Middle: quick search. Sized by the header's own width (container query),
+        {/* Right: quick search. Shown by the header's own width (container query),
             since the sidebar, right column or drawer can make it much narrower than the screen */}
         {showHeaderSearch && (
-          <div className="hidden @2xl:flex min-w-0 justify-center">
+          <div className="hidden @2xl:flex flex-1 min-w-0 justify-end">
             <HeaderSearch />
           </div>
         )}
 
         {/* Right: Theme Toggle + Sign In (guest) / Liked (mobile) + Account menu (md+) */}
         {/* On xl these live in the right column's account pod */}
-        <div className="flex items-center justify-end gap-2 shrink-0 justify-self-end xl:hidden">
+        <div className="flex items-center justify-end gap-2 shrink-0 xl:hidden">
           <ThemeToggleButton />
 
           {user ? (

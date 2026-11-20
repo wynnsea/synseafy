@@ -7,6 +7,7 @@ import type { DrawerTab } from "@/src/application/stores/use-ui-store";
 import { usePlayerStore } from "@/src/application/stores/use-player-store";
 import { useLibraryStore } from "@/src/application/stores/use-library-store";
 import { TrackArtwork } from "@/src/presentation/components/music/TrackArtwork";
+import { useTrackLyrics } from "@/src/application/hooks/use-track-lyrics";
 
 type Tab = Exclude<DrawerTab, null>;
 
@@ -26,10 +27,7 @@ export function NowPlayingPanel({ tab, onTabChange, onClose }: NowPlayingPanelPr
     usePlayerStore();
   const recordPlayed = useLibraryStore((s) => s.recordPlayed);
 
-  const activeLyricIndex = currentTrack.lyrics.reduce(
-    (acc, line, idx) => (currentTime >= line.time ? idx : acc),
-    0
-  );
+  const lyrics = useTrackLyrics(currentTrack, currentTime, tab === "lyrics");
 
   const tabClass = (t: Tab) =>
     `px-3.5 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-all ${
@@ -79,13 +77,23 @@ export function NowPlayingPanel({ tab, onTabChange, onClose }: NowPlayingPanelPr
           </div>
 
           <div className="space-y-4 py-2 px-1">
-            {currentTrack.lyrics.map((line, idx) => {
-              const active = idx === activeLyricIndex;
+            {lyrics.status !== "ready" && (
+            <p className=" text-sm text-[var(--text-muted)] py-6">
+              {lyrics.status === "loading"
+                ? "Loading lyrics…"
+                : lyrics.status === "error"
+                  ? "Couldn't load lyrics. Try again later."
+                  : "Lyrics aren't available for this song."}
+            </p>
+          )}
+            {lyrics.lines.map((line, idx) => {
+              const active = idx === lyrics.activeIndex;
               return (
                 <button
-                  key={line.time}
-                  onClick={() => seek(line.time)}
-                  className={`block text-left w-full transition-all duration-300 cursor-pointer ${
+                  key={idx}
+                  onClick={() => lyrics.timed && seek(line.time)}
+                  disabled={!lyrics.timed}
+                  className={`block text-left w-full transition-all duration-300 ${lyrics.timed ? "cursor-pointer" : "cursor-default"} ${
                     active
                       ? "text-lg font-bold text-[var(--accent-cyan)] drop-shadow-[0_0_10px_rgba(56,189,248,0.45)]"
                       : "text-sm text-[var(--text-secondary)]/80 hover:text-[var(--text-primary)]"

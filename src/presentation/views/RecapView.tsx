@@ -13,7 +13,7 @@ import {
   History,
   Trash2,
 } from "lucide-react";
-import { MOCK_TRACKS } from "@/src/infrastructure/data/mock-tracks";
+import { getCatalogTrack } from "@/src/infrastructure/data/catalog";
 import { useActivityStore } from "@/src/application/stores/use-activity-store";
 import { usePlayerStore } from "@/src/application/stores/use-player-store";
 import { useLibraryStore } from "@/src/application/stores/use-library-store";
@@ -37,7 +37,7 @@ export function RecapView() {
   const showToast = useToastStore((s) => s.showToast);
 
   const recap = useMemo(
-    () => computeListeningRecap(records, MOCK_TRACKS),
+    () => computeListeningRecap(records, getCatalogTrack),
     [records]
   );
 
@@ -46,10 +46,6 @@ export function RecapView() {
     ...recap.hourBuckets.map((b) => b.plays)
   );
 
-  const trackMap = useMemo(
-    () => new Map(MOCK_TRACKS.map((t) => [t.id, t])),
-    []
-  );
 
   if (records.length === 0) {
     return (
@@ -61,7 +57,7 @@ export function RecapView() {
         <div className="px-4 md:px-7 space-y-6 pb-8">
           <button
             onClick={() => router.back()}
-            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-full liquid-pill text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer"
+            className="hidden md:inline-flex items-center gap-2 px-3.5 py-2 rounded-full liquid-pill text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
             Back
@@ -91,10 +87,11 @@ export function RecapView() {
       />
 
       <div className="px-4 md:px-7 space-y-6 pb-8">
-        <div className="flex items-center justify-between gap-3">
+        {/* Back is desktop-only; on phones the poster button sits on the right */}
+        <div className="flex items-center justify-end md:justify-between gap-3">
           <button
             onClick={() => router.back()}
-            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-full liquid-pill text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer"
+            className="hidden md:inline-flex items-center gap-2 px-3.5 py-2 rounded-full liquid-pill text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
             Back
@@ -167,9 +164,11 @@ export function RecapView() {
           <div className="liquid-glass rounded-[24px] p-4 space-y-1">
             <Disc3 className="w-4 h-4 text-[var(--accent-cyan)]" />
             <p className="text-2xl font-bold text-[var(--text-primary)] truncate">
-              {recap.topGenre}
+              {recap.topGenre || recap.topArtists[0]?.artist || "—"}
             </p>
-            <p className="text-xs text-[var(--text-secondary)]">Top Genre</p>
+            <p className="text-xs text-[var(--text-secondary)]">
+              {recap.topGenre ? "Top Genre" : "Top Artist"}
+            </p>
           </div>
         </section>
 
@@ -243,7 +242,7 @@ export function RecapView() {
                 <button
                   key={item.track.id}
                   onClick={() => {
-                    playTrack(item.track, MOCK_TRACKS);
+                    playTrack(item.track, [item.track]);
                     recordPlayed(item.track.id);
                   }}
                   className="w-full liquid-pill rounded-2xl p-2.5 pr-3.5 flex items-center gap-3 hover:bg-[var(--glass-bg-hover)] transition-colors text-left cursor-pointer group"
@@ -305,7 +304,7 @@ export function RecapView() {
           {records.length > 0 ? (
             <div className="space-y-2 max-h-[380px] overflow-y-auto no-scrollbar pr-1">
               {records.map((rec) => {
-                const track = trackMap.get(rec.trackId);
+                const track = getCatalogTrack(rec.trackId);
                 if (!track) return null;
                 return (
                   <div
@@ -314,7 +313,7 @@ export function RecapView() {
                   >
                     <button
                       onClick={() => {
-                        playTrack(track, MOCK_TRACKS);
+                        playTrack(track, [track]);
                         recordPlayed(track.id);
                       }}
                       className="flex items-center gap-3 min-w-0 flex-1 text-left cursor-pointer group"

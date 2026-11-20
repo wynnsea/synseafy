@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from "react";
 import { Heart, Clock, Play } from "lucide-react";
-import { MOCK_TRACKS } from "@/src/infrastructure/data/mock-tracks";
+import { resolveTracks } from "@/src/infrastructure/data/catalog";
 import { useLibraryStore } from "@/src/application/stores/use-library-store";
 import { usePlayerStore } from "@/src/application/stores/use-player-store";
 import { TopHeader } from "@/src/presentation/components/layout/TopHeader";
@@ -14,18 +14,12 @@ export function LikedView() {
   const playTrack = usePlayerStore((s) => s.playTrack);
 
   const likedTracks = useMemo(
-    () =>
-      likedTrackIds
-        .map((id) => MOCK_TRACKS.find((t) => t.id === id))
-        .filter((t): t is (typeof MOCK_TRACKS)[number] => Boolean(t)),
+    () => resolveTracks(likedTrackIds),
     [likedTrackIds]
   );
 
   const recentTracks = useMemo(
-    () =>
-      recentTrackIds
-        .map((id) => MOCK_TRACKS.find((t) => t.id === id))
-        .filter((t): t is (typeof MOCK_TRACKS)[number] => Boolean(t)),
+    () => resolveTracks(recentTrackIds),
     [recentTrackIds]
   );
 

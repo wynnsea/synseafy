@@ -40,6 +40,8 @@ export interface IUserLibraryRepository {
   createPlaylist(playlist: Playlist): Promise<void>;
   updatePlaylist(id: string, name: string, description: string): Promise<void>;
   deletePlaylist(id: string): Promise<void>;
+  /** Set (URL) or clear (null) the playlist's custom cover image. */
+  updatePlaylistCover(id: string, coverUrl: string | null): Promise<void>;
   /** Replace the playlist's track list (order included) with `tracks`. */
   setPlaylistTracks(playlistId: string, tracks: Track[]): Promise<void>;
 

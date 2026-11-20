@@ -13,6 +13,8 @@ import {
   Share2,
   Check,
   ChevronRight,
+  Heart,
+  type LucideIcon,
 } from "lucide-react";
 import { Track } from "@/src/domain/entities/track";
 import { usePlayerStore } from "@/src/application/stores/use-player-store";
@@ -20,9 +22,23 @@ import { useLibraryStore } from "@/src/application/stores/use-library-store";
 import { useToastStore } from "@/src/application/stores/use-toast-store";
 import { toSlug } from "@/src/application/use-cases/slugify";
 
+/** Extra, context-specific entry (e.g. "Remove from playlist"). */
+export interface TrackMenuItem {
+  label: string;
+  icon: LucideIcon;
+  onSelect: () => void;
+  danger?: boolean;
+}
+
 interface TrackContextMenuProps {
   track: Track;
+  /** Put Like / Unlike in the menu (for rows that don't show a heart button) */
+  showLike?: boolean;
+  /** Shown at the bottom, after a divider */
+  extraItems?: TrackMenuItem[];
 }
+
+const ITEM_HEIGHT = 34;
 
 interface MenuAnchor {
   left: number;
@@ -46,13 +62,17 @@ const DESKTOP_BOTTOM_CHROME = 104;
  * "Add to Playlist" submenu so expanding it never pushes the menu off-screen.
  * If neither side fits fully, use the roomier side and cap the height.
  */
-function computeAnchor(rect: DOMRect, playlistCount: number): MenuAnchor {
+function computeAnchor(
+  rect: DOMRect,
+  playlistCount: number,
+  extraRows: number,
+): MenuAnchor {
   const vw = window.innerWidth;
   const vh = window.innerHeight;
   const bottomChrome = vw < 768 ? MOBILE_BOTTOM_CHROME : DESKTOP_BOTTOM_CHROME;
 
   const submenuHeight = Math.min(144, playlistCount * 30) + 8;
-  const needed = MENU_BASE_HEIGHT + submenuHeight;
+  const needed = MENU_BASE_HEIGHT + submenuHeight + extraRows * ITEM_HEIGHT;
 
   const spaceBelow = vh - bottomChrome - rect.bottom - MENU_GAP;
   const spaceAbove = rect.top - MENU_GAP - EDGE_MARGIN;
@@ -62,7 +82,7 @@ function computeAnchor(rect: DOMRect, playlistCount: number): MenuAnchor {
 
   const left = Math.max(
     EDGE_MARGIN,
-    Math.min(vw - MENU_WIDTH - EDGE_MARGIN, rect.right - MENU_WIDTH)
+    Math.min(vw - MENU_WIDTH - EDGE_MARGIN, rect.right - MENU_WIDTH),
   );
 
   return openUp
@@ -80,7 +100,11 @@ function computeAnchor(rect: DOMRect, playlistCount: number): MenuAnchor {
       };
 }
 
-export function TrackContextMenu({ track }: TrackContextMenuProps) {
+export function TrackContextMenu({
+  track,
+  showLike = false,
+  extraItems = [],
+}: TrackContextMenuProps) {
   const [open, setOpen] = useState(false);
   const [showPlaylists, setShowPlaylists] = useState(false);
   const [anchor, setAnchor] = useState<MenuAnchor | null>(null);
@@ -89,7 +113,9 @@ export function TrackContextMenu({ track }: TrackContextMenuProps) {
   const menuRef = useRef<HTMLDivElement | null>(null);
 
   const addToQueue = usePlayerStore((s) => s.addToQueue);
-  const { playlists, addTrackToPlaylist } = useLibraryStore();
+  const { playlists, addTrackToPlaylist, likedTrackIds, toggleLike } =
+    useLibraryStore();
+  const liked = likedTrackIds.includes(track.id);
   const showToast = useToastStore((s) => s.showToast);
 
   useEffect(() => {
@@ -139,7 +165,10 @@ export function TrackContextMenu({ track }: TrackContextMenuProps) {
 
     const rect = buttonRef.current?.getBoundingClientRect();
     if (rect) {
-      setAnchor(computeAnchor(rect, playlists.length));
+      // +1 row for the divider before extra items
+      const extraRows =
+        (showLike ? 1 : 0) + (extraItems.length ? extraItems.length + 1 : 0);
+      setAnchor(computeAnchor(rect, playlists.length, extraRows));
     }
 
     setOpen(true);
@@ -148,7 +177,7 @@ export function TrackContextMenu({ track }: TrackContextMenuProps) {
 
   const handleShare = () => {
     const shareUrl = `${window.location.origin}/search?q=${encodeURIComponent(
-      track.title
+      track.title,
     )}`;
     if (navigator.clipboard) {
       navigator.clipboard.writeText(shareUrl).catch(() => {});
@@ -198,6 +227,31 @@ export function TrackContextMenu({ track }: TrackContextMenuProps) {
                 }}
                 className="fixed w-56 liquid-glass-dock rounded-2xl p-1.5 z-[999] shadow-2xl space-y-0.5 overflow-y-auto overscroll-contain"
               >
+                {showLike && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      toggleLike(track.id);
+                      showToast(
+                        liked
+                          ? `Removed "${track.title}" from Liked`
+                          : `Saved "${track.title}" to Liked Songs`,
+                      );
+                      setOpen(false);
+                    }}
+                    className="w-full px-3 py-2 rounded-xl text-left text-xs font-medium text-[var(--text-primary)] hover:bg-[var(--glass-bg-hover)] flex items-center gap-3 cursor-pointer"
+                  >
+                    <Heart
+                      className={`w-4 h-4 shrink-0 text-[var(--accent-cyan)] ${liked ? "fill-current" : ""}`}
+                    />
+                    <span>
+                      {liked
+                        ? "Remove from Liked Songs"
+                        : "Save to Liked Songs"}
+                    </span>
+                  </button>
+                )}
+
                 <button
                   type="button"
                   onClick={() => {
@@ -251,7 +305,7 @@ export function TrackContextMenu({ track }: TrackContextMenuProps) {
                                 showToast(
                                   alreadyIn
                                     ? `Already in "${pl.name}"`
-                                    : `Added to "${pl.name}"`
+                                    : `Added to "${pl.name}"`,
                                 );
                                 setOpen(false);
                                 setShowPlaylists(false);
@@ -273,7 +327,7 @@ export function TrackContextMenu({ track }: TrackContextMenuProps) {
                 <div className="h-px bg-[var(--text-muted)]/20 my-1 mx-2" />
 
                 <Link
-                  href={`/artist/${toSlug(track.artist)}`}
+                  href={`/artist/${toSlug(track.artists?.[0] ?? track.artist)}`}
                   onClick={() => setOpen(false)}
                   className="w-full px-3 py-2 rounded-xl text-left text-xs font-medium text-[var(--text-primary)] hover:bg-[var(--glass-bg-hover)] flex items-center gap-3"
                 >
@@ -298,10 +352,39 @@ export function TrackContextMenu({ track }: TrackContextMenuProps) {
                   <Share2 className="w-4 h-4 text-[var(--accent-cyan)] shrink-0" />
                   <span>Copy Track Link</span>
                 </button>
+
+                {extraItems.length > 0 && (
+                  <>
+                    <div className="h-px bg-[var(--text-muted)]/20 my-1 mx-2" />
+                    {extraItems.map((item) => {
+                      const Icon = item.icon;
+                      return (
+                        <button
+                          key={item.label}
+                          type="button"
+                          onClick={() => {
+                            setOpen(false);
+                            item.onSelect();
+                          }}
+                          className={`w-full px-3 py-2 rounded-xl text-left text-xs font-medium flex items-center gap-3 cursor-pointer ${
+                            item.danger
+                              ? "text-rose-400 hover:bg-rose-500/15"
+                              : "text-[var(--text-primary)] hover:bg-[var(--glass-bg-hover)]"
+                          }`}
+                        >
+                          <Icon
+                            className={`w-4 h-4 shrink-0 ${item.danger ? "" : "text-[var(--accent-cyan)]"}`}
+                          />
+                          <span>{item.label}</span>
+                        </button>
+                      );
+                    })}
+                  </>
+                )}
               </motion.div>
             )}
           </AnimatePresence>,
-          document.body
+          document.body,
         )}
     </div>
   );

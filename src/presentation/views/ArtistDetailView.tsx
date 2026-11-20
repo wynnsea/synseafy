@@ -4,7 +4,8 @@ import React, { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Play, Shuffle, BadgeCheck, Disc3 } from "lucide-react";
-import { MOCK_TRACKS } from "@/src/infrastructure/data/mock-tracks";
+import { Track } from "@/src/domain/entities/track";
+import { useSlugTracks } from "@/src/application/hooks/use-slug-tracks";
 import { toSlug } from "@/src/application/use-cases/slugify";
 import { usePlayerStore } from "@/src/application/stores/use-player-store";
 import { useLibraryStore } from "@/src/application/stores/use-library-store";
@@ -20,21 +21,31 @@ export function ArtistDetailView({ slug }: { slug: string }) {
   const recordPlayed = useLibraryStore((s) => s.recordPlayed);
   const showToast = useToastStore((s) => s.showToast);
 
-  const artistTracks = useMemo(
-    () => MOCK_TRACKS.filter((t) => toSlug(t.artist) === slug),
-    [slug]
-  );
+  const { tracks: artistTracks, loading } = useSlugTracks("artist", slug);
 
   const primaryTrack = artistTracks[0];
-  const artistName = primaryTrack?.artist ?? "Artist";
+  // The exact artist (not the joined "A, B" credit) whose slug is in the URL
+  const artistName =
+    (primaryTrack?.artists ?? [primaryTrack?.artist]).find((a) => a && toSlug(a) === slug) ??
+    primaryTrack?.artist ??
+    "Artist";
 
   const albums = useMemo(() => {
-    const map = new Map<string, (typeof MOCK_TRACKS)[number]>();
+    const map = new Map<string, Track>();
     artistTracks.forEach((t) => {
-      if (!map.has(t.album)) map.set(t.album, t);
+      if (t.album && !map.has(t.album)) map.set(t.album, t);
     });
     return Array.from(map.values());
   }, [artistTracks]);
+
+  if (loading) {
+    return (
+      <div className="w-full max-w-[1440px] mx-auto px-4 md:px-7 py-12 space-y-4">
+        <div className="liquid-glass-strong rounded-[32px] h-40 animate-pulse" />
+        <div className="liquid-glass rounded-[28px] h-64 animate-pulse" />
+      </div>
+    );
+  }
 
   if (!primaryTrack) {
     return (
@@ -61,7 +72,7 @@ export function ArtistDetailView({ slug }: { slug: string }) {
       <div className="px-4 md:px-7 space-y-6 pb-6">
         <button
           onClick={() => router.back()}
-          className="inline-flex items-center gap-2 px-3.5 py-2 rounded-full liquid-pill text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer"
+          className="hidden md:inline-flex items-center gap-2 px-3.5 py-2 rounded-full liquid-pill text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
           Back
@@ -84,7 +95,9 @@ export function ArtistDetailView({ slug }: { slug: string }) {
                 {artistName}
               </h2>
               <p className="text-xs sm:text-sm text-[var(--text-secondary)] mt-1">
-                {primaryTrack.playCount} monthly listeners · {primaryTrack.genre}
+                {primaryTrack.playCount
+                  ? `${primaryTrack.playCount} monthly listeners${primaryTrack.genre ? ` · ${primaryTrack.genre}` : ""}`
+                  : `${artistTracks.length} songs on YouTube Music`}
               </p>
             </div>
           </div>
@@ -174,7 +187,7 @@ export function ArtistDetailView({ slug }: { slug: string }) {
                     {track.album}
                   </p>
                   <p className="text-xs text-[var(--text-secondary)] truncate">
-                    Album · {track.genre}
+                    {track.genre ? `Album · ${track.genre}` : "Album"}
                   </p>
                 </div>
               </Link>
