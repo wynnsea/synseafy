@@ -137,7 +137,7 @@ export function AuthView({ mode }: AuthViewProps) {
               />
             </div>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">
+              <h1 className="text-xl md:text-2xl font-bold tracking-tight text-[var(--text-primary)]">
                 {isLogin ? "Welcome Back" : "Join Synseafy"}
               </h1>
               <p className="text-xs sm:text-sm text-[var(--text-secondary)] mt-1">

@@ -50,7 +50,7 @@ export function LikedView() {
               )}
             </div>
             <div>
-              <h2 className="text-xl sm:text-2xl font-bold text-[var(--text-primary)]">
+              <h2 className="text-lg md:text-2xl font-bold text-[var(--text-primary)]">
                 {tab === "liked" ? "Liked Songs" : "Recently Played"}
               </h2>
               <p className="text-xs sm:text-sm text-[var(--text-secondary)]">

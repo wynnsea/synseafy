@@ -68,7 +68,7 @@ export function AlbumDetailView({ slug }: { slug: string }) {
               <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--accent-cyan)]">
                 Album · {primary.genre}
               </span>
-              <h2 className="text-2xl sm:text-3xl font-bold text-[var(--text-primary)] mt-1">
+              <h2 className="text-xl md:text-3xl font-bold text-[var(--text-primary)] mt-1">
                 {primary.album}
               </h2>
               <p className="text-xs sm:text-sm text-[var(--text-secondary)] mt-1">

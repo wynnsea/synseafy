@@ -25,7 +25,7 @@ export function TopHeader({
 
   return (
     <header className="sticky top-0 z-30 pt-4 pb-5 px-4 md:px-7 bg-gradient-to-b from-[var(--bg-canvas)] via-[var(--bg-canvas)]/92 to-transparent">
-      <div className="liquid-glass-dock rounded-full px-3.5 py-2.5 flex items-center justify-between gap-3">
+      <div className="liquid-glass-bar liquid-glass-solid rounded-full px-3.5 py-2.5 flex items-center justify-between gap-3">
         {/* Left: Avatar + Personal Greeting */}
         <Link
           href={user ? APP_ROUTES.profile : APP_ROUTES.login}

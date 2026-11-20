@@ -80,7 +80,7 @@ export function ArtistDetailView({ slug }: { slug: string }) {
                 <BadgeCheck className="w-4 h-4" />
                 Verified Artist
               </span>
-              <h2 className="text-2xl sm:text-4xl font-bold tracking-tight text-[var(--text-primary)] mt-1">
+              <h2 className="text-xl md:text-4xl font-bold tracking-tight text-[var(--text-primary)] mt-1">
                 {artistName}
               </h2>
               <p className="text-xs sm:text-sm text-[var(--text-secondary)] mt-1">
@@ -135,7 +135,7 @@ export function ArtistDetailView({ slug }: { slug: string }) {
 
         {/* Popular Tracks */}
         <section className="space-y-3">
-          <h3 className="text-lg font-bold text-[var(--text-primary)]">
+          <h3 className="text-base md:text-lg font-bold text-[var(--text-primary)]">
             Popular Tracks
           </h3>
           <div className="space-y-2.5">
@@ -151,7 +151,7 @@ export function ArtistDetailView({ slug }: { slug: string }) {
 
         {/* Discography / Albums */}
         <section className="space-y-3">
-          <h3 className="text-lg font-bold text-[var(--text-primary)] flex items-center gap-2">
+          <h3 className="text-base md:text-lg font-bold text-[var(--text-primary)] flex items-center gap-2">
             <Disc3 className="w-5 h-5 text-[var(--accent-cyan)]" />
             Albums &amp; Releases
           </h3>

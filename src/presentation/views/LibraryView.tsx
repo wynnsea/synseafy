@@ -20,18 +20,18 @@ export function LibraryView() {
 
       <div className="px-4 md:px-7 space-y-6 pb-4">
         <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <Disc3 className="w-5 h-5 text-[var(--accent-cyan)]" />
-            <h2 className="text-lg sm:text-xl font-bold text-[var(--text-primary)]">
+          <div className="flex items-center gap-2 md:gap-2.5 min-w-0">
+            <Disc3 className="w-4 h-4 md:w-5 md:h-5 shrink-0 text-[var(--accent-cyan)]" />
+            <h2 className="text-base md:text-xl font-bold text-[var(--text-primary)] truncate">
               Custom Playlists ({playlists.length})
             </h2>
           </div>
 
           <button
             onClick={() => setCreatePlaylistOpen(true)}
-            className="px-4 py-2.5 rounded-full ocean-gradient-btn text-xs font-semibold flex items-center gap-1.5 hover:scale-[1.03] transition-transform cursor-pointer"
+            className="shrink-0 whitespace-nowrap px-3.5 py-2 md:px-4 md:py-2.5 rounded-full ocean-gradient-btn text-[11px] md:text-xs font-semibold flex items-center gap-1 md:gap-1.5 hover:scale-[1.03] transition-transform cursor-pointer"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-3.5 h-3.5 md:w-4 md:h-4" />
             New Playlist
           </button>
         </div>

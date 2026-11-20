@@ -89,7 +89,7 @@ export function PlaylistDetailView({ playlistId }: PlaylistDetailViewProps) {
               {playlist.name.slice(0, 2).toUpperCase()}
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-[var(--text-primary)]">
+              <h2 className="text-xl md:text-2xl font-bold text-[var(--text-primary)]">
                 {playlist.name}
               </h2>
               <p className="text-sm text-[var(--text-secondary)] mt-1">

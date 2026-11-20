@@ -18,7 +18,7 @@ export function MobileMiniPlayer() {
 
   return (
     <div className="md:hidden fixed bottom-[86px] inset-x-4 z-40 flex justify-center pointer-events-none">
-      <div className="pointer-events-auto w-full max-w-[390px] liquid-glass-dock rounded-full p-2 pr-3 flex items-center gap-3 relative overflow-hidden">
+      <div className="pointer-events-auto w-full max-w-[390px] liquid-glass-bar rounded-full p-2 pr-3 flex items-center gap-3 relative overflow-hidden">
         {/* Subtle bottom progress glow line */}
         <div
           className="absolute bottom-0 left-4 right-4 h-[2px] rounded-full bg-white/10 overflow-hidden"

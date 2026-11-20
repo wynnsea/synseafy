@@ -84,7 +84,7 @@ export function RecapView() {
               <BarChart3 className="w-3.5 h-3.5" />
               Live Listening Analytics
             </span>
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--text-primary)]">
+            <h2 className="text-xl md:text-3xl font-bold tracking-tight text-[var(--text-primary)]">
               {recap.personaTitle}
             </h2>
             <p className="text-xs sm:text-sm text-[var(--text-secondary)]">

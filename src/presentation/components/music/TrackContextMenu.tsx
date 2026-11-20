@@ -28,7 +28,56 @@ interface MenuAnchor {
   left: number;
   top?: number;
   bottom?: number;
+  maxHeight: number;
   origin: "top" | "bottom";
+}
+
+const MENU_WIDTH = 224;
+const MENU_GAP = 8;
+const EDGE_MARGIN = 12;
+// Height of the closed menu (5 rows + divider + padding)
+const MENU_BASE_HEIGHT = 200;
+// Bottom chrome that covers the page: mobile mini player + tab bar, desktop player dock
+const MOBILE_BOTTOM_CHROME = 176;
+const DESKTOP_BOTTOM_CHROME = 104;
+
+/**
+ * Open below the button when it fits, otherwise above. Includes room for the
+ * "Add to Playlist" submenu so expanding it never pushes the menu off-screen.
+ * If neither side fits fully, use the roomier side and cap the height.
+ */
+function computeAnchor(rect: DOMRect, playlistCount: number): MenuAnchor {
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const bottomChrome = vw < 768 ? MOBILE_BOTTOM_CHROME : DESKTOP_BOTTOM_CHROME;
+
+  const submenuHeight = Math.min(144, playlistCount * 30) + 8;
+  const needed = MENU_BASE_HEIGHT + submenuHeight;
+
+  const spaceBelow = vh - bottomChrome - rect.bottom - MENU_GAP;
+  const spaceAbove = rect.top - MENU_GAP - EDGE_MARGIN;
+
+  const openUp =
+    spaceBelow < needed && (spaceAbove >= needed || spaceAbove > spaceBelow);
+
+  const left = Math.max(
+    EDGE_MARGIN,
+    Math.min(vw - MENU_WIDTH - EDGE_MARGIN, rect.right - MENU_WIDTH)
+  );
+
+  return openUp
+    ? {
+        left,
+        bottom: vh - rect.top + MENU_GAP,
+        maxHeight: spaceAbove,
+        origin: "bottom",
+      }
+    : {
+        left,
+        top: rect.bottom + MENU_GAP,
+        maxHeight: Math.max(spaceBelow, MENU_BASE_HEIGHT),
+        origin: "top",
+      };
 }
 
 export function TrackContextMenu({ track }: TrackContextMenuProps) {
@@ -59,18 +108,24 @@ export function TrackContextMenu({ track }: TrackContextMenuProps) {
       }
     };
 
-    const handleScrollOrResize = () => {
+    const close = () => {
       setOpen(false);
       setShowPlaylists(false);
     };
 
+    // Page scroll closes the menu; scrolling inside the (height-capped) menu doesn't
+    const handleScroll = (e: Event) => {
+      if (menuRef.current && menuRef.current.contains(e.target as Node)) return;
+      close();
+    };
+
     document.addEventListener("mousedown", handleOutside);
-    window.addEventListener("resize", handleScrollOrResize);
-    window.addEventListener("scroll", handleScrollOrResize, true);
+    window.addEventListener("resize", close);
+    window.addEventListener("scroll", handleScroll, true);
     return () => {
       document.removeEventListener("mousedown", handleOutside);
-      window.removeEventListener("resize", handleScrollOrResize);
-      window.removeEventListener("scroll", handleScrollOrResize, true);
+      window.removeEventListener("resize", close);
+      window.removeEventListener("scroll", handleScroll, true);
     };
   }, [open]);
 
@@ -84,17 +139,7 @@ export function TrackContextMenu({ track }: TrackContextMenuProps) {
 
     const rect = buttonRef.current?.getBoundingClientRect();
     if (rect) {
-      const menuWidth = 224;
-      const left = Math.max(
-        12,
-        Math.min(window.innerWidth - menuWidth - 12, rect.right - menuWidth)
-      );
-
-      setAnchor({
-        left,
-        top: rect.bottom + 8,
-        origin: "top",
-      });
+      setAnchor(computeAnchor(rect, playlists.length));
     }
 
     setOpen(true);
@@ -147,10 +192,11 @@ export function TrackContextMenu({ track }: TrackContextMenuProps) {
                   left: anchor.left,
                   top: anchor.top,
                   bottom: anchor.bottom,
+                  maxHeight: anchor.maxHeight,
                   transformOrigin:
                     anchor.origin === "bottom" ? "bottom right" : "top right",
                 }}
-                className="fixed w-56 liquid-glass-dock rounded-2xl p-1.5 z-[999] shadow-2xl space-y-0.5"
+                className="fixed w-56 liquid-glass-dock rounded-2xl p-1.5 z-[999] shadow-2xl space-y-0.5 overflow-y-auto overscroll-contain"
               >
                 <button
                   type="button"

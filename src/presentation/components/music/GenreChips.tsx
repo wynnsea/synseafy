@@ -10,7 +10,10 @@ interface GenreChipsProps {
 
 export function GenreChips({ genres, selected, onSelect }: GenreChipsProps) {
   return (
-    <div className="flex items-center gap-2.5 overflow-x-auto no-scrollbar py-1">
+    // Full-bleed: cancel the page gutter so chips scroll edge-to-edge,
+    // with vertical room so the glass shadows are never clipped.
+    <div className="-mx-4 md:-mx-7 -my-2 overflow-x-auto no-scrollbar">
+      <div className="flex w-max items-center gap-2.5 px-4 md:px-7 py-2">
       {genres.map((genre) => {
         const active = selected === genre;
         return (
@@ -31,6 +34,7 @@ export function GenreChips({ genres, selected, onSelect }: GenreChipsProps) {
           </button>
         );
       })}
+      </div>
     </div>
   );
 }

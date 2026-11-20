@@ -222,7 +222,7 @@ export function SearchView() {
 
             {/* Browse All Moods & Genres Tiles */}
             <section className="space-y-3.5">
-              <h2 className="text-lg font-bold text-[var(--text-primary)]">
+              <h2 className="text-base md:text-lg font-bold text-[var(--text-primary)]">
                 Browse Ocean Moods &amp; Genres
               </h2>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3.5">

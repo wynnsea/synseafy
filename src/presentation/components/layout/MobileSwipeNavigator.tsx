@@ -1,14 +1,19 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useUiStore } from "@/src/application/stores/use-ui-store";
+import {
+  useActiveTabPath,
+  useTabPagerStore,
+} from "@/src/application/stores/use-tab-pager-store";
 import { HomeView } from "@/src/presentation/views/HomeView";
 import { SearchView } from "@/src/presentation/views/SearchView";
 import { LibraryView } from "@/src/presentation/views/LibraryView";
 import { ProfileView } from "@/src/presentation/views/ProfileView";
 
-const SWIPE_ROUTES = ["/", "/search", "/library", "/profile"] as const;
+// Left-to-right order matches the tab bar: [Home, Library, Profile] + Search orb
+export const SWIPE_ROUTES = ["/", "/library", "/profile", "/search"] as const;
 
 function isInsideHorizontalScrollOrControl(target: EventTarget | null): boolean {
   let el = target as HTMLElement | null;
@@ -53,24 +58,28 @@ export function MobileSwipeNavigator({
   const isNowPlayingOpen = useUiStore((s) => s.isNowPlayingOpen);
   const isCreatePlaylistOpen = useUiStore((s) => s.isCreatePlaylistOpen);
 
+  const activePath = useActiveTabPath();
+  const setPending = useTabPagerStore((s) => s.setPending);
+  const clearPending = useTabPagerStore((s) => s.clearPending);
+
   const routeIndex = SWIPE_ROUTES.indexOf(
     pathname as (typeof SWIPE_ROUTES)[number]
   );
 
-  const [pendingNav, setPendingNav] = useState<{
-    from: number;
-    to: number;
-  } | null>(null);
   const [dragX, setDragX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
 
-  // Optimistically hold target index while router.replace settles -> zero bounce!
+  // Once the URL actually changes, the optimistic target has done its job.
+  useEffect(() => {
+    clearPending();
+  }, [pathname, clearPending]);
+
+  // Optimistic index (shared with the tab bar) -> zero bounce, never stale
+  const activeIndex = SWIPE_ROUTES.indexOf(
+    activePath as (typeof SWIPE_ROUTES)[number]
+  );
   const displayIndex =
-    pendingNav && pendingNav.from === routeIndex
-      ? pendingNav.to
-      : routeIndex === -1
-        ? 0
-        : routeIndex;
+    activeIndex !== -1 ? activeIndex : routeIndex === -1 ? 0 : routeIndex;
 
   const touchStartRef = useRef<{
     x: number;
@@ -151,13 +160,12 @@ export function MobileSwipeNavigator({
       }
     }
 
-    // Update pendingNav & reset dragX in the SAME React batch -> zero bounce!
-    if (targetIndex !== routeIndex) {
-      setPendingNav({ from: routeIndex, to: targetIndex });
-      setDragX(0);
-      router.replace(SWIPE_ROUTES[targetIndex], { scroll: false });
-    } else {
-      setDragX(0);
+    // Update pending target & reset dragX in the SAME batch -> zero bounce!
+    setDragX(0);
+    if (targetIndex !== displayIndex) {
+      const target = SWIPE_ROUTES[targetIndex];
+      setPending(target, pathname);
+      router.replace(target, { scroll: false });
     }
   };
 
@@ -196,13 +204,13 @@ export function MobileSwipeNavigator({
             <HomeView />
           </div>
           <div className="w-full shrink-0 min-w-full h-full overflow-y-auto overscroll-y-contain pb-[176px]">
-            <SearchView />
-          </div>
-          <div className="w-full shrink-0 min-w-full h-full overflow-y-auto overscroll-y-contain pb-[176px]">
             <LibraryView />
           </div>
           <div className="w-full shrink-0 min-w-full h-full overflow-y-auto overscroll-y-contain pb-[176px]">
             <ProfileView />
+          </div>
+          <div className="w-full shrink-0 min-w-full h-full overflow-y-auto overscroll-y-contain pb-[176px]">
+            <SearchView />
           </div>
         </div>
       </div>

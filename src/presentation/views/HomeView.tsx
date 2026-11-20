@@ -63,7 +63,7 @@ export function HomeView() {
         {/* Popular Horizontal Carousel (matches reference image) */}
         <section className="space-y-3.5">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg sm:text-xl font-bold tracking-tight text-[var(--text-primary)]">
+            <h2 className="text-base md:text-xl font-bold tracking-tight text-[var(--text-primary)]">
               Popular
             </h2>
             <Link
@@ -89,7 +89,7 @@ export function HomeView() {
         <section className="space-y-3.5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <h2 className="text-lg sm:text-xl font-bold tracking-tight text-[var(--text-primary)]">
+              <h2 className="text-base md:text-xl font-bold tracking-tight text-[var(--text-primary)]">
                 Hot &amp; Trending
               </h2>
               <Flame className="w-5 h-5 text-sky-400 fill-sky-400/30" />
@@ -119,7 +119,7 @@ export function HomeView() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Clock className="w-4 h-4 text-[var(--accent-cyan)]" />
-                <h2 className="text-lg font-bold tracking-tight text-[var(--text-primary)]">
+                <h2 className="text-base md:text-lg font-bold tracking-tight text-[var(--text-primary)]">
                   Recently Played
                 </h2>
               </div>
